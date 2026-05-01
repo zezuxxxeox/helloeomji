@@ -1,0 +1,2520 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./public/app-icon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./public/app-icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./public/manifest.webmanifest" />
+    <title>오늘뭐하냥</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        overflow-x: hidden;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: rgb(255 255 255);
+        background-image: none;
+        color: rgb(23 23 23);
+        font-family: Gulim, "굴림", Dotum, "돋움", "Apple SD Gothic Neo", sans-serif;
+      }
+
+      body.is-petting-locked {
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .app-shell {
+        height: 100dvh;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .app-shell > header,
+      .control-strip {
+        border: 1px solid rgb(226 232 240);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+      }
+
+      .app-shell > header {
+        align-items: center;
+        padding: 16px;
+      }
+
+      .app-shell h1 {
+        color: rgb(219 39 119);
+        font-family: Gulim, "굴림", Dotum, "돋움", "Apple SD Gothic Neo", sans-serif;
+        line-height: 1;
+        text-shadow:
+          1px 1px 0 rgb(255 255 255),
+          2px 2px 0 rgba(244, 114, 182, 0.28);
+      }
+
+      .stats-grid {
+        width: min(100%, 228px);
+        min-width: 0;
+      }
+
+      .stat-item {
+        min-width: 104px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        padding: 11px 13px;
+      }
+
+      .stat-item dt {
+        color: rgb(82 82 82);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .stat-item dd {
+        margin-top: 2px;
+        font-size: 24px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .field-group {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .field-group label {
+        color: rgb(64 64 64);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .field-group input {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        border: 1px solid rgb(203 213 225);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.96);
+        padding: 10px 12px;
+        outline: none;
+      }
+
+      .control-strip,
+      .control-strip form {
+        min-width: 0;
+      }
+
+      .control-strip .field-group {
+        max-width: 100%;
+      }
+
+      .control-strip .field-group.min-w-64 {
+        flex: 1 1 min(16rem, 100%);
+        min-width: 0;
+      }
+
+      .control-strip .field-group.w-40 {
+        flex: 0 1 10rem;
+        width: min(10rem, 100%);
+      }
+
+      .control-strip .primary-button {
+        flex: 0 0 auto;
+      }
+
+      .control-strip form > .small-button {
+        flex: 0 0 auto;
+      }
+
+      .control-strip form > .primary-button,
+      .control-strip form > .small-button {
+        width: 108px;
+        min-width: 108px;
+        height: 48px;
+        padding: 0 14px;
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .form-actions {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 8px;
+      }
+
+      .form-actions > .primary-button,
+      .form-actions > .small-button {
+        width: 108px;
+        min-width: 108px;
+        height: 48px;
+        padding: 0 14px;
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .field-group input:focus {
+        border-color: rgb(14 116 144);
+        box-shadow: 0 0 0 3px rgb(207 250 254);
+      }
+
+      .primary-button,
+      .small-button {
+        border: 2px solid rgb(112 0 56);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgb(255 128 204) 0%, rgb(236 0 140) 48%, rgb(190 24 93) 100%);
+        box-shadow:
+          inset 2px 2px 0 rgba(255, 255, 255, 0.72),
+          inset -3px -3px 0 rgba(112, 0, 56, 0.38),
+          3px 3px 0 rgb(112 0 56);
+        color: white;
+        font-weight: 900;
+        text-shadow:
+          0 1px 0 rgba(80, 7, 36, 0.9),
+          0 0 5px rgba(112, 0, 56, 0.42);
+        transition:
+          transform 0.08s ease-out,
+          box-shadow 0.08s ease-out,
+          filter 0.14s ease-out;
+      }
+
+      .primary-button:hover,
+      .small-button:hover {
+        filter: brightness(1.03);
+        transform: translate(-1px, -1px);
+      }
+
+      .primary-button:active,
+      .small-button:active {
+        box-shadow:
+          inset -1px -1px 0 rgba(255, 255, 255, 0.7),
+          inset 2px 2px 0 rgba(112, 0, 56, 0.42),
+          1px 1px 0 rgb(112 0 56);
+        transform: translate(2px, 2px);
+      }
+
+      .primary-button {
+        min-width: 92px;
+        padding: 11px 16px;
+      }
+
+      .small-button {
+        padding: 7px 10px;
+        font-size: 13px;
+      }
+
+      .small-button.secondary {
+        border-color: rgb(131 24 67);
+        background: linear-gradient(180deg, rgb(251 113 183) 0%, rgb(219 39 119) 100%);
+        color: white;
+      }
+
+      .small-button.reward {
+        border-color: rgb(112 0 56);
+        background: linear-gradient(180deg, rgb(255 87 178) 0%, rgb(219 39 119) 100%);
+        color: white;
+      }
+
+      .small-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+
+      .message-line {
+        min-width: 270px;
+        min-height: 24px;
+        color: rgb(185 28 28);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .quick-add-panel {
+        width: 100%;
+        min-width: 0;
+        border-top: 1px solid rgb(226 232 240);
+        padding-top: 10px;
+      }
+
+      .quick-add-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .quick-add-title {
+        color: rgb(64 64 64);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .quick-add-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .quick-add-item {
+        display: inline-flex;
+        max-width: 100%;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        padding: 7px 10px;
+        color: rgb(38 38 38);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .quick-add-item input {
+        flex: 0 0 auto;
+        accent-color: rgb(219 39 119);
+      }
+
+      .quick-add-item span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .quick-add-empty {
+        color: rgb(82 82 82);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .workbench {
+        flex: 1 1 auto;
+        min-height: 0;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        align-items: stretch;
+        overflow: hidden;
+      }
+
+      .park-stage {
+        position: relative;
+        height: 100%;
+        min-height: 0;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 26px;
+        background-color: #ffffff;
+        background-image: none;
+        isolation: isolate;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      .cat-stage {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        pointer-events: none;
+      }
+
+      .cat-sprite {
+        position: absolute;
+        left: 50%;
+        width: clamp(72px, 10vw, 118px);
+        height: clamp(90px, 13vw, 148px);
+        transform-origin: 50% 100%;
+        cursor: pointer;
+        user-select: none;
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        pointer-events: auto;
+        touch-action: manipulation;
+        --walk-duration: 1.65s;
+        filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.32));
+        transition:
+          transform 0.24s cubic-bezier(0.22, 0.7, 0.32, 1),
+          bottom 0.24s cubic-bezier(0.22, 0.7, 0.32, 1),
+          opacity 0.18s ease-out,
+          filter 0.24s ease-out;
+      }
+
+      .cat-sprite::before,
+      .cat-sprite::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-position: center bottom;
+        background-repeat: no-repeat;
+        background-size: contain;
+        transform-origin: 50% 100%;
+        transform: none;
+        will-change: opacity;
+      }
+
+      .cat-sprite::before {
+        background-image: url("./public/cat-walk-a.png");
+        opacity: 1;
+        animation: catWalkFrameA var(--walk-duration) steps(1, end) infinite;
+      }
+
+      .cat-sprite::after {
+        display: block;
+        background-image: url("./public/cat-walk-b.png");
+        opacity: 0;
+        transform: translate(1.7%, -0.8%);
+        animation: catWalkFrameB var(--walk-duration) steps(1, end) infinite;
+      }
+
+      .cat-sprite[data-arrived="true"]::before {
+        animation: none;
+        opacity: 1;
+      }
+
+      .cat-sprite[data-arrived="true"]::after {
+        display: none;
+        animation: none;
+      }
+
+      @keyframes catWalkFrameA {
+        0%,
+        49.9% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes catWalkFrameB {
+        0%,
+        49.9% {
+          opacity: 0;
+        }
+        50%,
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .cat-sprite[data-status="failed"] {
+        cursor: default;
+        filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.18)) grayscale(35%);
+      }
+
+      .cat-sprite[data-status="failed"]::before {
+        background-image: url("./public/cat-returning.png");
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+
+      .cat-sprite[data-status="failed"]::after {
+        content: "\1F494";
+        inset: auto auto 64% 50%;
+        display: block;
+        width: auto;
+        height: auto;
+        background: none;
+        font-size: clamp(42px, 6vw, 72px);
+        line-height: 1;
+        opacity: 0.96;
+        text-shadow:
+          0 2px 0 rgba(255, 255, 255, 0.85),
+          0 5px 12px rgba(15, 23, 42, 0.24);
+        transform: translateX(-50%);
+        animation: brokenHeartFloat 1.25s ease-in-out infinite alternate;
+        will-change: transform, opacity;
+      }
+
+      @keyframes brokenHeartFloat {
+        0% {
+          opacity: 0.76;
+          transform: translate(-50%, 4px) scale(0.94);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -5px) scale(1.04);
+        }
+      }
+
+      .empty-park {
+        position: absolute;
+        left: 50%;
+        top: 46%;
+        z-index: 9;
+        display: grid;
+        width: 320px;
+        transform: translate(-50%, -50%);
+        gap: 8px;
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+        padding: 18px;
+        text-align: center;
+      }
+
+      .empty-park strong {
+        font-size: 17px;
+      }
+
+      .empty-park span {
+        color: rgb(82 82 82);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .task-panel {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .petted-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: auto;
+        touch-action: none;
+        overscroll-behavior: contain;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.18);
+        --petting-progress: 0;
+      }
+
+      .petted-overlay[hidden] {
+        display: none;
+      }
+
+      .petted-cat {
+        width: clamp(448px, 63vw, 854px);
+        max-height: 94vh;
+        height: auto;
+        filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45));
+        transform: translate(-8%, 28%) scale(1);
+        animation: pettedPop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        pointer-events: auto;
+        cursor: none;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .petted-cat.is-being-petted {
+        filter:
+          drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45))
+          drop-shadow(0 0 16px rgba(255, 255, 255, 0.36));
+      }
+
+      @keyframes pettedPop {
+        0% {
+          opacity: 0;
+          transform: translate(-8%, 28%) scale(0.55);
+        }
+        60% {
+          opacity: 1;
+          transform: translate(-8%, 28%) scale(1.06);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-8%, 28%) scale(1);
+        }
+      }
+
+      .petting-meter {
+        position: fixed;
+        left: 50%;
+        bottom: clamp(24px, 7vh, 66px);
+        z-index: 101;
+        width: min(340px, 72vw);
+        height: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        background: rgba(15, 23, 42, 0.26);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+        transform: translateX(-50%);
+      }
+
+      .petting-meter span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, rgb(14 116 144), rgb(250 204 21), rgb(251 113 133));
+        transform: scaleX(var(--petting-progress));
+        transform-origin: 0 50%;
+        transition: transform 0.12s ease-out;
+      }
+
+      .petting-hand {
+        position: fixed;
+        z-index: 102;
+        width: clamp(78px, 10vw, 124px);
+        height: clamp(78px, 10vw, 124px);
+        pointer-events: none;
+        background: url("./public/hand.png") center / contain no-repeat;
+        transform: translate(-42%, -54%) rotate(-8deg);
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+        transition: opacity 0.18s ease-out;
+      }
+
+      .petting-hand[hidden] {
+        display: none;
+      }
+
+      .petting-hand.is-rubbing {
+        animation: handRub 0.26s ease-in-out infinite alternate;
+      }
+
+      @keyframes handRub {
+        0% {
+          transform: translate(-46%, -58%) rotate(-12deg);
+        }
+        100% {
+          transform: translate(-28%, -46%) rotate(4deg);
+        }
+      }
+
+      .petting-sparkle {
+        position: fixed;
+        z-index: 101;
+        width: 14px;
+        height: 14px;
+        pointer-events: none;
+        border-radius: 50%;
+        background: rgb(254 240 138);
+        box-shadow:
+          0 0 0 4px rgba(254, 240, 138, 0.18),
+          0 0 16px rgba(250, 204, 21, 0.55);
+        animation: sparkleFly 1s ease-out forwards;
+      }
+
+      .petting-sparkle::before,
+      .petting-sparkle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 22px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        transform: translate(-50%, -50%);
+      }
+
+      .petting-sparkle::after {
+        transform: translate(-50%, -50%) rotate(90deg);
+      }
+
+      @keyframes sparkleFly {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, 0) scale(0.4);
+        }
+        20% {
+          opacity: 1;
+          transform: translate(-50%, -10px) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -90px) scale(1.2);
+        }
+      }
+
+      .petted-heart {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        z-index: 103;
+        pointer-events: none;
+        font-size: clamp(96px, 12vw, 156px);
+        line-height: 1;
+        text-shadow:
+          0 3px 0 rgba(255, 255, 255, 0.86),
+          0 12px 26px rgba(190, 18, 60, 0.25);
+        animation: heartBurst 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      .petted-heart::before,
+      .petted-heart::after {
+        display: none;
+      }
+
+      @keyframes heartBurst {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.3);
+        }
+        25% {
+          opacity: 1;
+          transform: translate(-50%, -55%) scale(1.35);
+        }
+        70% {
+          opacity: 1;
+          transform: translate(-50%, -90%) scale(1.1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -160%) scale(0.95);
+        }
+      }
+
+      @media (max-width: 860px) {
+        .app-shell {
+          height: auto;
+          overflow: visible;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .workbench {
+          grid-template-columns: minmax(0, 1fr);
+          overflow: visible;
+        }
+
+        .park-stage {
+          height: auto;
+          min-height: 500px;
+        }
+
+        .task-panel {
+          min-height: 320px;
+          max-height: 360px;
+        }
+
+        .message-line {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .quick-add-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .quick-add-toolbar .small-button {
+          width: 100%;
+        }
+
+        .quick-add-list {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .quick-add-item {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .app-shell {
+          gap: 10px;
+          padding: 10px;
+        }
+
+        .app-shell > header {
+          gap: 10px;
+          padding: 10px;
+        }
+
+        .app-shell h1 {
+          font-size: 25px;
+        }
+
+        .stats-grid {
+          width: 100%;
+        }
+
+        .stat-item {
+          min-width: 0;
+          border-radius: 14px;
+          padding: 8px 10px;
+        }
+
+        .stat-item dt {
+          font-size: 11px;
+        }
+
+        .stat-item dd {
+          font-size: 20px;
+        }
+
+        .control-strip {
+          gap: 8px;
+          border-radius: 18px;
+          padding: 12px;
+        }
+
+        .control-strip form {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 8px;
+          width: 100%;
+        }
+
+        .control-strip .field-group.min-w-64,
+        .control-strip .field-group.w-40 {
+          max-width: 100%;
+          width: 100%;
+        }
+
+        .field-group {
+          min-width: 0;
+        }
+
+        .field-group label {
+          font-size: 12px;
+        }
+
+        .field-group input {
+          display: block;
+          max-width: 100%;
+          min-inline-size: 0;
+          border-radius: 13px;
+          padding: 9px 10px;
+        }
+
+        .field-group input[type="time"] {
+          -webkit-appearance: none;
+          appearance: none;
+        }
+
+        .field-group.w-40,
+        .primary-button,
+        .control-strip form > .small-button {
+          width: 100%;
+        }
+
+        .control-strip form > .primary-button,
+        .control-strip form > .small-button {
+          min-width: 0;
+        }
+
+        .form-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          max-width: 100%;
+          width: 100%;
+        }
+
+        .form-actions .primary-button,
+        .form-actions .small-button {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .park-stage {
+          min-height: 330px;
+          border-radius: 20px;
+        }
+
+        .panel-heading {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 8px;
+          padding: 11px;
+        }
+
+        .panel-title-block {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .panel-heading h2 {
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .panel-heading span {
+          min-width: 0;
+          color: rgb(236 0 140);
+          text-align: center;
+          font-size: 20px;
+          font-weight: 950;
+        }
+
+        .panel-tabs {
+          width: 100%;
+        }
+
+        .panel-tab {
+          flex: 1;
+        }
+
+        .calendar-day {
+          min-height: 54px;
+          padding: 5px;
+        }
+
+        .task-panel {
+          border-radius: 20px;
+          max-height: 340px;
+        }
+
+        .task-list,
+        .calendar-view {
+          padding: 8px;
+        }
+
+        .task-item {
+          border-radius: 15px;
+          gap: 8px;
+          padding: 10px;
+        }
+
+        .task-title {
+          font-size: 14px;
+        }
+
+        .task-meta {
+          font-size: 12px;
+          overflow-wrap: break-word;
+        }
+
+        .small-button {
+          padding: 6px 8px;
+          font-size: 12px;
+        }
+
+        .petted-cat {
+          width: min(120vw, 620px);
+          max-height: 92dvh;
+          object-fit: contain;
+          transform: translate(0, 0) scale(1);
+          animation-name: pettedPopMobile;
+        }
+
+        @keyframes pettedPopMobile {
+          0% {
+            opacity: 0;
+            transform: translate(0, 0) scale(0.66);
+          }
+          60% {
+            opacity: 1;
+            transform: translate(0, 0) scale(1.27);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(0, 0) scale(1.2);
+          }
+        }
+
+        .cat-sprite {
+          width: clamp(58px, 16vw, 92px);
+          height: clamp(74px, 20vw, 116px);
+        }
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgb(226 232 240);
+        background: rgba(255, 255, 255, 0.86);
+        padding: 14px;
+      }
+
+      .panel-title-block {
+        min-width: 0;
+      }
+
+      .panel-heading h2 {
+        font-size: 18px;
+        font-weight: 950;
+      }
+
+      .panel-heading span {
+        color: rgb(82 82 82);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      @media (max-width: 520px) {
+        .panel-title-block {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .panel-heading h2,
+        .panel-heading span {
+          text-align: center;
+          font-size: 20px;
+          font-weight: 950;
+        }
+
+        .panel-heading span {
+          min-width: 0;
+          color: rgb(236 0 140);
+        }
+      }
+
+      .panel-tabs {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 6px;
+      }
+
+      .panel-tab {
+        min-width: 52px;
+        border: 2px solid rgb(244 114 182);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgb(253 242 248) 100%);
+        box-shadow:
+          inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+          1px 1px 0 rgb(251 207 232);
+        color: rgb(131 24 67);
+        opacity: 0.62;
+        text-shadow: none;
+        padding: 6px 8px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .panel-tab.is-active {
+        border-color: rgb(112 0 56);
+        background: linear-gradient(180deg, rgb(255 87 178) 0%, rgb(190 24 93) 100%);
+        box-shadow:
+          inset 2px 2px 0 rgba(255, 255, 255, 0.72),
+          inset -2px -2px 0 rgba(112, 0, 56, 0.34),
+          2px 2px 0 rgb(112 0 56);
+        color: white;
+        opacity: 1;
+        text-shadow: 0 1px 0 rgba(80, 7, 36, 0.9);
+      }
+
+      .task-list {
+        min-height: 0;
+        overflow: auto;
+        padding: 10px;
+      }
+
+      .calendar-view {
+        min-height: 0;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .calendar-toolbar {
+        display: grid;
+        grid-template-columns: 42px 1fr 42px;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .calendar-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 950;
+      }
+
+      .calendar-nav {
+        width: 38px;
+        height: 34px;
+        border: 2px solid rgb(112 0 56);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgb(255 128 204) 0%, rgb(219 39 119) 100%);
+        box-shadow:
+          inset 2px 2px 0 rgba(255, 255, 255, 0.72),
+          inset -2px -2px 0 rgba(112, 0, 56, 0.34),
+          2px 2px 0 rgb(112 0 56);
+        color: white;
+        text-shadow: 0 1px 0 rgba(80, 7, 36, 0.9);
+        font-size: 18px;
+        font-weight: 950;
+      }
+
+      .calendar-weekdays,
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .calendar-weekdays {
+        margin-bottom: 6px;
+        color: rgb(100 116 139);
+        font-size: 11px;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .calendar-day {
+        min-height: 62px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 14px;
+        background: white;
+        padding: 6px;
+        box-shadow: 0 6px 12px rgba(15, 23, 42, 0.04);
+      }
+
+      .calendar-day.is-empty {
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .calendar-day.is-today {
+        border-color: rgb(14 116 144);
+        box-shadow: 0 0 0 3px rgb(207 250 254);
+      }
+
+      .calendar-date {
+        display: block;
+        margin-bottom: 6px;
+        color: rgb(15 23 42);
+        font-size: 12px;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .calendar-count {
+        display: block;
+        color: rgb(71 85 105);
+        font-size: 10px;
+        font-weight: 850;
+        line-height: 1.25;
+      }
+
+      .task-item {
+        display: grid;
+        gap: 10px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.045);
+        margin-bottom: 10px;
+        padding: 14px;
+      }
+
+      .task-title-row {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .task-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .status-badge {
+        flex: 0 0 auto;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 999px;
+        background: rgb(248 250 252);
+        padding: 4px 7px;
+        color: rgb(64 64 64);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .task-meta {
+        color: rgb(82 82 82);
+        font-size: 13px;
+        font-weight: 750;
+        overflow-wrap: break-word;
+      }
+
+      .task-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .progress-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgb(226 232 240);
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgb(14 116 144), rgb(250 204 21));
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-white text-neutral-950">
+    <div class="petted-overlay" data-petted-overlay hidden>
+      <img class="petted-cat" data-petted-cat src="./cat-petted.png" alt="" />
+      <div class="petting-meter" aria-hidden="true"><span></span></div>
+      <div class="petting-hand" data-petting-hand hidden></div>
+    </div>
+
+    <main class="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-5 py-5">
+      <header class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 class="text-3xl font-black tracking-normal">오늘뭐하냥</h1>
+        </div>
+        <dl class="stats-grid grid grid-cols-2 gap-2" data-stats>
+          <div class="stat-item">
+            <dt>활성</dt>
+            <dd data-stat-active>0</dd>
+          </div>
+          <div class="stat-item">
+            <dt>완료</dt>
+            <dd data-stat-completed>0</dd>
+          </div>
+        </dl>
+      </header>
+
+      <section class="control-strip flex flex-wrap items-end gap-3 border-y border-neutral-200 bg-white/80 px-3 py-3">
+        <form class="flex flex-1 flex-wrap items-end gap-3" data-task-form>
+          <div class="field-group min-w-64 flex-1">
+            <label for="task-text">할 일</label>
+            <input
+              id="task-text"
+              type="text"
+              name="task"
+              autocomplete="off"
+              placeholder="예: 포트폴리오 정리하기"
+              data-task-input
+            />
+          </div>
+          <div class="field-group w-40">
+            <label for="task-deadline">마감 시간</label>
+            <input id="task-deadline" type="time" name="deadline" data-deadline-input />
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">추가</button>
+            <button class="small-button secondary" type="button" data-quick-add-toggle>빠른 추가</button>
+          </div>
+        </form>
+        <p class="message-line" role="alert" data-message></p>
+        <div class="quick-add-panel" data-quick-add-panel hidden>
+          <div class="quick-add-toolbar">
+            <strong class="quick-add-title">전에 추가했던 할 일</strong>
+            <button class="small-button reward" type="button" data-quick-add-submit>선택 추가</button>
+          </div>
+          <div class="quick-add-list" data-quick-add-list></div>
+        </div>
+      </section>
+
+      <section class="workbench grid flex-1 grid-cols-[1fr_340px] gap-4">
+        <div class="park-stage" data-park-stage>
+          <div class="cat-stage" data-cat-stage aria-label="공원 산책로 위 고양이"></div>
+          <div class="empty-park" data-empty-park>
+            <strong>공원에 아직 고양이가 없어요.</strong>
+            <span>할 일을 추가하고 고양이를 만나보세요.</span>
+          </div>
+        </div>
+
+        <aside class="task-panel">
+          <div class="panel-heading">
+            <div class="panel-title-block">
+              <h2 data-panel-title>할 일 목록</h2>
+              <span data-current-time>--:--:--</span>
+            </div>
+            <div class="panel-tabs" role="tablist" aria-label="할 일 보기 전환">
+              <button class="panel-tab is-active" type="button" data-panel-view-button="tasks">목록</button>
+              <button class="panel-tab" type="button" data-panel-view-button="calendar">캘린더</button>
+            </div>
+          </div>
+          <ul class="task-list" data-task-list></ul>
+          <div class="calendar-view" data-calendar-view hidden>
+            <div class="calendar-toolbar">
+              <button class="calendar-nav" type="button" aria-label="이전 달" data-calendar-prev>&lt;</button>
+              <strong class="calendar-title" data-calendar-title></strong>
+              <button class="calendar-nav" type="button" aria-label="다음 달" data-calendar-next>&gt;</button>
+            </div>
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>일</span>
+              <span>월</span>
+              <span>화</span>
+              <span>수</span>
+              <span>목</span>
+              <span>금</span>
+              <span>토</span>
+            </div>
+            <div class="calendar-grid" data-calendar-grid></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const APPROACH_DURATION_MS = 6000;
+      const LANE_PATTERN = [0, -1, 1, -2, 2];
+      const DEADLINE_REMINDER_LEAD_MS = 10 * 60 * 1000;
+      const FAILED_CAT_VISIBLE_MS = 5000;
+      const TASK_STORAGE_KEY = "today-cat-tasks-v1";
+      const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
+      const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
+
+      function isBlankText(text) {
+        return typeof text !== "string" || text.trim().length === 0;
+      }
+
+      function isValidFutureDeadline(deadlineAt, now) {
+        return Number.isFinite(deadlineAt) && deadlineAt > now;
+      }
+
+      function getNextTaskId(tasks) {
+        const nextNumber =
+          tasks.reduce((largestNumber, task) => {
+            const match = /^task-(\d+)$/.exec(task.id);
+            const taskNumber = match ? Number(match[1]) : 0;
+            return Math.max(largestNumber, taskNumber);
+          }, 0) + 1;
+
+        return `task-${nextNumber}`;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function addTask(tasks, text, deadlineAt, now) {
+        if (isBlankText(text) || !isValidFutureDeadline(deadlineAt, now)) {
+          return tasks;
+        }
+
+        return [
+          ...tasks,
+          {
+            id: getNextTaskId(tasks),
+            text: text.trim(),
+            createdAt: now,
+            deadlineAt,
+            status: "active",
+            completedAt: null,
+            failedAt: null,
+            hiddenAt: null,
+            pettedAt: null,
+          },
+        ];
+      }
+
+      function completeTask(tasks, id, now) {
+        let changed = false;
+
+        const nextTasks = tasks.map((task) => {
+          if (task.id !== id || task.status !== "active" || now > task.deadlineAt) {
+            return task;
+          }
+
+          changed = true;
+
+          return {
+            ...task,
+            status: "completed",
+            completedAt: now,
+          };
+        });
+
+        return changed ? nextTasks : tasks;
+      }
+
+      function failOverdueTasks(tasks, now) {
+        let changed = false;
+
+        const nextTasks = tasks.map((task) => {
+          if (task.status !== "active" || task.deadlineAt >= now) {
+            return task;
+          }
+
+          changed = true;
+
+          return {
+            ...task,
+            status: "failed",
+            failedAt: now,
+            hiddenAt: null,
+          };
+        });
+
+        return changed ? nextTasks : tasks;
+      }
+
+      function deleteTask(tasks, id) {
+        return tasks.filter((task) => task.id !== id);
+      }
+
+      function hideExpiredFailedCats(tasks, now) {
+        let changed = false;
+
+        const nextTasks = tasks.map((task) => {
+          if (
+            task.status !== "failed" ||
+            !Number.isFinite(task.failedAt) ||
+            task.hiddenAt != null ||
+            now - task.failedAt < FAILED_CAT_VISIBLE_MS
+          ) {
+            return task;
+          }
+
+          changed = true;
+
+          return {
+            ...task,
+            hiddenAt: now,
+          };
+        });
+
+        return changed ? nextTasks : tasks;
+      }
+
+      function calculateCatApproach(task, now) {
+        if (task.status === "petted") {
+          return 1;
+        }
+
+        if (task.status === "failed") {
+          return 0;
+        }
+
+        const travelDuration = task.deadlineAt - task.createdAt;
+
+        if (travelDuration <= 0) {
+          return 0;
+        }
+
+        return clamp((now - task.createdAt) / travelDuration, 0, 1);
+      }
+
+      function canPetCat(task, now) {
+        return (
+          task.status === "completed" &&
+          task.pettedAt === null &&
+          calculateCatApproach(task, now) === 1
+        );
+      }
+
+      function petCat(tasks, id, now) {
+        let changed = false;
+
+        const nextTasks = tasks.map((task) => {
+          if (task.id !== id || !canPetCat(task, now)) {
+            return task;
+          }
+
+          changed = true;
+
+          return {
+            ...task,
+            status: "petted",
+            pettedAt: now,
+          };
+        });
+
+        return changed ? nextTasks : tasks;
+      }
+
+      function calculateCatPerspective(task, now) {
+        const approachRatio = calculateCatApproach(task, now);
+
+        if (task.status === "failed") {
+          return {
+            approachRatio: 1,
+            scale: 2.59,
+            opacity: 1,
+            zIndex: 105,
+          };
+        }
+
+        return {
+          approachRatio,
+          scale: 0.32 + approachRatio * 2.6,
+          opacity: 1,
+          zIndex: Math.round(10 + approachRatio * 90),
+        };
+      }
+
+      function calculateStats(tasks) {
+        return tasks.reduce(
+          (stats, task) => ({
+            activeCount: stats.activeCount + (task.status === "active" ? 1 : 0),
+            completedCount:
+              stats.completedCount + (task.status === "completed" || task.status === "petted" ? 1 : 0),
+            pettedCount: stats.pettedCount + (task.status === "petted" || task.pettedAt !== null ? 1 : 0),
+            returnedCatCount: stats.returnedCatCount + (task.status === "failed" ? 1 : 0),
+          }),
+          {
+            activeCount: 0,
+            completedCount: 0,
+            pettedCount: 0,
+            returnedCatCount: 0,
+          },
+        );
+      }
+
+      function parseDeadlineTime(value, now) {
+        if (!value) {
+          return Number.NaN;
+        }
+
+        const [hourText, minuteText] = value.split(":");
+        const hour = Number(hourText);
+        const minute = Number(minuteText);
+
+        if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+          return Number.NaN;
+        }
+
+        const deadline = new Date(now);
+        deadline.setHours(hour, minute, 0, 0);
+
+        return deadline.getTime();
+      }
+
+      function formatClock(timestamp) {
+        return new Intl.DateTimeFormat("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }).format(timestamp);
+      }
+
+      function formatDeadline(timestamp) {
+        return new Intl.DateTimeFormat("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(timestamp);
+      }
+
+      function createCatScene({ catStage, onCatClick }) {
+        const sprites = new Map();
+
+        function buildSprite(task) {
+          const sprite = document.createElement("button");
+          sprite.type = "button";
+          sprite.className = "cat-sprite";
+          sprite.textContent = "";
+          sprite.dataset.taskId = task.id;
+          sprite.setAttribute("aria-label", `${task.text} 고양이`);
+          sprite.addEventListener("click", () => onCatClick(task.id));
+          catStage.appendChild(sprite);
+          sprites.set(task.id, sprite);
+          return sprite;
+        }
+
+        function removeMissingSprites(tasks) {
+          const taskIds = new Set(tasks.map((task) => task.id));
+
+          sprites.forEach((sprite, taskId) => {
+            if (!taskIds.has(taskId)) {
+              sprite.remove();
+              sprites.delete(taskId);
+            }
+          });
+        }
+
+        function applyCatPose(sprite, task, index, now, hiddenTaskId) {
+          const shouldHide =
+            task.id === hiddenTaskId ||
+            task.status === "petted" ||
+            (task.status === "failed" && task.hiddenAt != null);
+
+          sprite.hidden = shouldHide;
+
+          if (shouldHide) {
+            return;
+          }
+
+          const perspective = calculateCatPerspective(task, now);
+          const lane = LANE_PATTERN[index % LANE_PATTERN.length];
+          const approach = perspective.approachRatio;
+          const isFailed = task.status === "failed";
+          const isArrived = !isFailed && approach >= 1;
+          const sideSpread = isFailed ? 32 : 90 * (1 - approach * 0.65);
+          const laneOffset = lane * sideSpread;
+          const bottomPercent = isFailed ? -6 : 32 - approach * 44;
+
+          sprite.style.bottom = `${bottomPercent}%`;
+          sprite.style.transform = `translate(calc(-50% + ${laneOffset}px), 0) scale(${perspective.scale})`;
+          sprite.style.opacity = String(perspective.opacity);
+          sprite.style.zIndex = String(perspective.zIndex);
+          sprite.setAttribute("aria-disabled", String(isFailed));
+          sprite.dataset.status = isFailed ? "failed" : task.status;
+          sprite.dataset.arrived = String(isArrived);
+        }
+
+        return {
+          update(tasks, now, hiddenTaskId = null) {
+            removeMissingSprites(tasks);
+            tasks.forEach((task, index) => {
+              const sprite = sprites.get(task.id) ?? buildSprite(task);
+              applyCatPose(sprite, task, index, now, hiddenTaskId);
+            });
+          },
+        };
+      }
+
+      function initApp() {
+        const form = document.querySelector("[data-task-form]");
+        const taskInput = document.querySelector("[data-task-input]");
+        const deadlineInput = document.querySelector("[data-deadline-input]");
+        const message = document.querySelector("[data-message]");
+        const panelTitle = document.querySelector("[data-panel-title]");
+        const panelViewButtons = [...document.querySelectorAll("[data-panel-view-button]")];
+        const taskList = document.querySelector("[data-task-list]");
+        const calendarView = document.querySelector("[data-calendar-view]");
+        const calendarTitle = document.querySelector("[data-calendar-title]");
+        const calendarGrid = document.querySelector("[data-calendar-grid]");
+        const calendarPrev = document.querySelector("[data-calendar-prev]");
+        const calendarNext = document.querySelector("[data-calendar-next]");
+        const emptyPark = document.querySelector("[data-empty-park]");
+        const currentTime = document.querySelector("[data-current-time]");
+        const catStage = document.querySelector("[data-cat-stage]");
+        const pettedOverlay = document.querySelector("[data-petted-overlay]");
+        const pettedCat = document.querySelector("[data-petted-cat]");
+        const pettingHand = document.querySelector("[data-petting-hand]");
+        const statActive = document.querySelector("[data-stat-active]");
+        const statCompleted = document.querySelector("[data-stat-completed]");
+        const quickAddToggle = document.querySelector("[data-quick-add-toggle]");
+        const quickAddPanel = document.querySelector("[data-quick-add-panel]");
+        const quickAddList = document.querySelector("[data-quick-add-list]");
+        const quickAddSubmit = document.querySelector("[data-quick-add-submit]");
+
+        if (
+          !form || !taskInput || !deadlineInput || !message || !panelTitle ||
+          panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
+          !calendarGrid || !calendarPrev || !calendarNext || !emptyPark ||
+          !currentTime || !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
+          !statActive || !statCompleted || !quickAddToggle || !quickAddPanel ||
+          !quickAddList || !quickAddSubmit
+        ) {
+          return;
+        }
+
+        let now = Date.now();
+        let activePanelView = "tasks";
+        let calendarMonth = new Date(now);
+        let dailyRecords = loadDailyRecords();
+        let tasks = loadStoredTasks();
+        let taskHistory = loadTaskHistory(tasks);
+        let lastSavedTasksText = "";
+        let lastSavedRecordsText = "";
+
+        calendarMonth.setDate(1);
+
+        const PET_TARGET_MS = 2200;
+        const MOVE_GRACE_MS = 180;
+        let isDragging = false;
+        let pettingMs = 0;
+        let lastMoveAt = 0;
+        let lastTickAt = 0;
+        let lastSparkleAt = 0;
+        let pointerX = 0;
+        let pointerY = 0;
+        let pettingRafId = 0;
+        let pettingActive = false;
+        let pendingPetTaskId = null;
+        let reminderPermissionRequest = null;
+        let lockedScrollY = 0;
+        let wheelPetPhase = 0;
+        const remindedTaskKeys = new Set();
+
+        function readStoredJson(key, fallback) {
+          try {
+            const savedValue = localStorage.getItem(key);
+            return savedValue ? JSON.parse(savedValue) : fallback;
+          } catch (_) {
+            return fallback;
+          }
+        }
+
+        function writeStoredJson(key, value) {
+          try {
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch (_) {}
+        }
+
+        function loadStoredTasks() {
+          const savedTasks = readStoredJson(TASK_STORAGE_KEY, []);
+
+          if (!Array.isArray(savedTasks)) {
+            return [];
+          }
+
+          return savedTasks.filter((task) => (
+            task &&
+            typeof task.id === "string" &&
+            typeof task.text === "string" &&
+            Number.isFinite(task.createdAt) &&
+            Number.isFinite(task.deadlineAt)
+          ));
+        }
+
+        function normalizeTaskText(text) {
+          return typeof text === "string" ? text.trim().replace(/\s+/g, " ") : "";
+        }
+
+        function loadTaskHistory(seedTasks) {
+          const savedHistory = readStoredJson(TASK_HISTORY_STORAGE_KEY, []);
+          const historyMap = new Map();
+
+          if (Array.isArray(savedHistory)) {
+            savedHistory.forEach((item) => {
+              const text = normalizeTaskText(typeof item === "string" ? item : item?.text);
+
+              if (!text) {
+                return;
+              }
+
+              historyMap.set(text, {
+                text,
+                lastUsedAt: Number.isFinite(item?.lastUsedAt) ? item.lastUsedAt : 0,
+                useCount: Number.isFinite(item?.useCount) ? item.useCount : 1,
+              });
+            });
+          }
+
+          seedTasks.forEach((task) => {
+            const text = normalizeTaskText(task.text);
+
+            if (!text) {
+              return;
+            }
+
+            const savedItem = historyMap.get(text);
+            historyMap.set(text, {
+              text,
+              lastUsedAt: Math.max(savedItem?.lastUsedAt ?? 0, task.createdAt ?? 0),
+              useCount: Math.max(savedItem?.useCount ?? 1, 1),
+            });
+          });
+
+          return [...historyMap.values()]
+            .sort((left, right) => right.lastUsedAt - left.lastUsedAt)
+            .slice(0, 24);
+        }
+
+        function saveTaskHistory() {
+          writeStoredJson(TASK_HISTORY_STORAGE_KEY, taskHistory);
+        }
+
+        function rememberTaskText(text, usedAt) {
+          const normalizedText = normalizeTaskText(text);
+
+          if (!normalizedText) {
+            return;
+          }
+
+          const existingItem = taskHistory.find((item) => item.text === normalizedText);
+          const nextItem = {
+            text: normalizedText,
+            lastUsedAt: usedAt,
+            useCount: (existingItem?.useCount ?? 0) + 1,
+          };
+
+          taskHistory = [
+            nextItem,
+            ...taskHistory.filter((item) => item.text !== normalizedText),
+          ].slice(0, 24);
+          saveTaskHistory();
+        }
+
+        function loadDailyRecords() {
+          const records = readStoredJson(DAILY_RECORD_STORAGE_KEY, {});
+          return records && typeof records === "object" && !Array.isArray(records) ? records : {};
+        }
+
+        function saveTasks() {
+          const nextSavedTasksText = JSON.stringify(tasks);
+
+          if (nextSavedTasksText === lastSavedTasksText) {
+            return;
+          }
+
+          lastSavedTasksText = nextSavedTasksText;
+          writeStoredJson(TASK_STORAGE_KEY, tasks);
+        }
+
+        function saveDailyRecords() {
+          const nextSavedRecordsText = JSON.stringify(dailyRecords);
+
+          if (nextSavedRecordsText === lastSavedRecordsText) {
+            return;
+          }
+
+          lastSavedRecordsText = nextSavedRecordsText;
+          writeStoredJson(DAILY_RECORD_STORAGE_KEY, dailyRecords);
+        }
+
+        function getDayKey(timestamp) {
+          const date = new Date(timestamp);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+
+          return `${year}-${month}-${day}`;
+        }
+
+        function calculateTodayStats(statsNow) {
+          const todayKey = getDayKey(statsNow);
+          const todayTasks = tasks.filter((task) => getDayKey(task.createdAt) === todayKey);
+          const todayStatusStats = calculateStats(todayTasks);
+
+          return {
+            ...todayStatusStats,
+            activeCount: todayTasks.length,
+            totalCount: todayTasks.length,
+          };
+        }
+
+        function saveDailyRecord(recordNow) {
+          const stats = calculateTodayStats(recordNow);
+          const dayKey = getDayKey(recordNow);
+
+          dailyRecords = {
+            ...dailyRecords,
+            [dayKey]: {
+              activeCount: stats.activeCount,
+              completedCount: stats.completedCount,
+              pettedCount: stats.pettedCount,
+              returnedCatCount: stats.returnedCatCount,
+              totalCount: stats.totalCount,
+            },
+          };
+
+          saveDailyRecords();
+        }
+
+        function positionHand(clientX, clientY) {
+          pointerX = clientX;
+          pointerY = clientY;
+          pettingHand.style.left = `${clientX}px`;
+          pettingHand.style.top = `${clientY}px`;
+        }
+
+        function lockPageScroll() {
+          if (document.body.classList.contains("is-petting-locked")) {
+            return;
+          }
+
+          lockedScrollY = window.scrollY;
+          document.body.classList.add("is-petting-locked");
+          document.body.style.position = "fixed";
+          document.body.style.top = `-${lockedScrollY}px`;
+          document.body.style.left = "0";
+          document.body.style.right = "0";
+          document.body.style.width = "100%";
+        }
+
+        function unlockPageScroll() {
+          if (!document.body.classList.contains("is-petting-locked")) {
+            return;
+          }
+
+          document.body.classList.remove("is-petting-locked");
+          document.body.style.position = "";
+          document.body.style.top = "";
+          document.body.style.left = "";
+          document.body.style.right = "";
+          document.body.style.width = "";
+          window.scrollTo(0, lockedScrollY);
+        }
+
+        function showHandAtRest() {
+          const rect = pettedCat.getBoundingClientRect();
+          positionHand(rect.left + rect.width * 0.58, rect.top + rect.height * 0.38);
+          pettingHand.hidden = false;
+        }
+
+        function moveHandWithScroll(deltaX, deltaY) {
+          const rect = pettedCat.getBoundingClientRect();
+          const delta = Math.abs(deltaY) > Math.abs(deltaX) ? deltaY : deltaX;
+
+          wheelPetPhase += Math.sign(delta || 1) * Math.min(Math.abs(delta || 1), 90) * 0.045;
+          positionHand(
+            rect.left + rect.width * (0.52 + Math.sin(wheelPetPhase) * 0.16),
+            rect.top + rect.height * (0.38 + Math.cos(wheelPetPhase * 0.75) * 0.05),
+          );
+          pettingHand.hidden = false;
+          isDragging = true;
+          lastMoveAt = performance.now();
+        }
+
+        function isPointOnPettedCat(clientX, clientY) {
+          const rect = pettedCat.getBoundingClientRect();
+          return (
+            clientX >= rect.left &&
+            clientX <= rect.right &&
+            clientY >= rect.top &&
+            clientY <= rect.bottom
+          );
+        }
+
+        function followPointer(event) {
+          if (!pettingActive) {
+            return;
+          }
+
+          positionHand(event.clientX, event.clientY);
+          pettingHand.hidden = false;
+          if (isDragging && isPointOnPettedCat(event.clientX, event.clientY)) {
+            lastMoveAt = performance.now();
+            return;
+          }
+
+          if (isDragging) {
+            isDragging = false;
+            pettingHand.classList.remove("is-rubbing");
+            pettedCat.classList.remove("is-being-petted");
+          }
+        }
+
+        function updatePettingProgress() {
+          const progress = Math.min(pettingMs / PET_TARGET_MS, 1);
+          pettedOverlay.style.setProperty("--petting-progress", String(progress));
+        }
+
+        function emitSparkle() {
+          const sparkle = document.createElement("div");
+          sparkle.className = "petting-sparkle";
+          const jitterX = (Math.random() - 0.5) * 30;
+          sparkle.style.left = `${pointerX + jitterX}px`;
+          sparkle.style.top = `${pointerY - 12}px`;
+          document.body.appendChild(sparkle);
+          setTimeout(() => sparkle.remove(), 1000);
+        }
+
+        function emitHeart() {
+          const heart = document.createElement("div");
+          heart.className = "petted-heart";
+          heart.textContent = "💖";
+          document.body.appendChild(heart);
+          setTimeout(() => heart.remove(), 1300);
+        }
+
+        function pettingTick(timestamp) {
+          if (!pettingActive) {
+            return;
+          }
+
+          if (lastTickAt > 0 && isDragging && timestamp - lastMoveAt < MOVE_GRACE_MS) {
+            const delta = timestamp - lastTickAt;
+            pettingMs += delta;
+            updatePettingProgress();
+
+            pettingHand.classList.add("is-rubbing");
+            pettedCat.classList.add("is-being-petted");
+
+            if (timestamp - lastSparkleAt > 700) {
+              emitSparkle();
+              lastSparkleAt = timestamp;
+            }
+
+            if (pettingMs >= PET_TARGET_MS) {
+              completePetting();
+              return;
+            }
+          } else {
+            pettingHand.classList.remove("is-rubbing");
+            pettedCat.classList.remove("is-being-petted");
+          }
+
+          lastTickAt = timestamp;
+          pettingRafId = requestAnimationFrame(pettingTick);
+        }
+
+        function startPettingSession() {
+          pettingMs = 0;
+          isDragging = false;
+          lastMoveAt = 0;
+          lastTickAt = 0;
+          lastSparkleAt = 0;
+          pettingActive = true;
+          updatePettingProgress();
+          if (pettingRafId) {
+            cancelAnimationFrame(pettingRafId);
+          }
+          pettingRafId = requestAnimationFrame(pettingTick);
+        }
+
+        function endPettingSession() {
+          pettingActive = false;
+          isDragging = false;
+          if (pettingRafId) {
+            cancelAnimationFrame(pettingRafId);
+            pettingRafId = 0;
+          }
+          pettingHand.hidden = pendingPetTaskId === null;
+          pettingHand.classList.remove("is-rubbing");
+          pettedCat.classList.remove("is-being-petted");
+        }
+
+        function completePetting() {
+          const taskId = pendingPetTaskId;
+
+          pendingPetTaskId = null;
+          pettingMs = PET_TARGET_MS;
+          updatePettingProgress();
+          endPettingSession();
+          emitHeart();
+          if (taskId) {
+            tasks = petCat(tasks, taskId, Date.now());
+            setMessage("쓰다듬 완료. 고양이가 만족했어요.");
+            render();
+          }
+          setTimeout(() => {
+            pettedOverlay.hidden = true;
+            pettedOverlay.style.setProperty("--petting-progress", "0");
+            unlockPageScroll();
+          }, 900);
+        }
+
+        function showPettedCat(taskId) {
+          pendingPetTaskId = taskId;
+          pettingMs = 0;
+          wheelPetPhase = 0;
+          lockPageScroll();
+          pettedOverlay.style.setProperty("--petting-progress", "0");
+          pettedOverlay.hidden = false;
+          pettedCat.style.animation = "none";
+          void pettedCat.offsetWidth;
+          pettedCat.style.animation = "";
+          startPettingSession();
+          requestAnimationFrame(showHandAtRest);
+        }
+
+        pettedCat.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          isDragging = true;
+          lastMoveAt = performance.now();
+          lastSparkleAt = 0;
+          positionHand(event.clientX, event.clientY);
+          pettingHand.hidden = false;
+          if (pettedCat.setPointerCapture) {
+            try {
+              pettedCat.setPointerCapture(event.pointerId);
+            } catch (_) {}
+          }
+        });
+
+        pettedOverlay.addEventListener("pointermove", followPointer);
+
+        const releaseDrag = () => {
+          isDragging = false;
+          pettingHand.classList.remove("is-rubbing");
+        };
+
+        pettedCat.addEventListener("pointerup", releaseDrag);
+        pettedCat.addEventListener("pointercancel", releaseDrag);
+        pettedOverlay.addEventListener("pointerleave", releaseDrag);
+        pettedOverlay.addEventListener("touchmove", (event) => {
+          event.preventDefault();
+        }, { passive: false });
+        pettedOverlay.addEventListener("wheel", (event) => {
+          event.preventDefault();
+          if (pettingActive) {
+            moveHandWithScroll(event.deltaX, event.deltaY);
+          }
+        }, { passive: false });
+
+        function setMessage(text) {
+          message.textContent = text;
+        }
+
+        function getReminderKey(task) {
+          return `${task.id}:${task.createdAt}:${task.deadlineAt}`;
+        }
+
+        function canRequestBrowserNotification() {
+          return "Notification" in window && Notification.permission === "default";
+        }
+
+        function requestReminderPermission() {
+          if (!("Notification" in window) || Notification.permission !== "default") {
+            return Promise.resolve("Notification" in window ? Notification.permission : "unsupported");
+          }
+
+          if (!reminderPermissionRequest) {
+            reminderPermissionRequest = Notification.requestPermission().finally(() => {
+              reminderPermissionRequest = null;
+            });
+          }
+
+          return reminderPermissionRequest;
+        }
+
+        function sendBrowserReminder(task) {
+          if (!("Notification" in window) || Notification.permission !== "granted") {
+            return;
+          }
+
+          try {
+            new Notification("오늘뭐하냥", {
+              body: `"${task.text}" 마감 10분 전이에요.`,
+              tag: `today-cat-${task.id}-${task.deadlineAt}`,
+              renotify: true,
+            });
+          } catch (_) {}
+        }
+
+        function sendDeadlineReminder(task) {
+          const reminderText = `"${task.text}" 마감 10분 전이에요.`;
+
+          setMessage(reminderText);
+          sendBrowserReminder(task);
+
+          if (navigator.vibrate) {
+            navigator.vibrate([120, 60, 120]);
+          }
+        }
+
+        function notifyUpcomingDeadlines(reminderNow) {
+          tasks.forEach((task) => {
+            const remainingMs = task.deadlineAt - reminderNow;
+            const reminderKey = getReminderKey(task);
+
+            if (
+              task.status !== "active" ||
+              remainingMs <= 0 ||
+              remainingMs > DEADLINE_REMINDER_LEAD_MS ||
+              remindedTaskKeys.has(reminderKey)
+            ) {
+              return;
+            }
+
+            remindedTaskKeys.add(reminderKey);
+
+            if (canRequestBrowserNotification()) {
+              requestReminderPermission().then(() => {
+                sendDeadlineReminder(task);
+              });
+              return;
+            }
+
+            sendDeadlineReminder(task);
+          });
+        }
+
+        function getTaskMessage(task) {
+          if (task.status === "active") {
+            return "기다리는 중";
+          }
+
+          if (task.status === "completed") {
+            return canPetCat(task, now) ? "쓰다듬기 가능" : "다가오는 중";
+          }
+
+          if (task.status === "petted") {
+            return "골골골...";
+          }
+
+          return "놓쳤어요";
+        }
+
+        function createTaskItem(task) {
+          const item = document.createElement("li");
+          item.className = "task-item";
+          item.dataset.taskId = task.id;
+
+          const titleRow = document.createElement("div");
+          titleRow.className = "task-title-row";
+
+          const title = document.createElement("p");
+          title.className = "task-title";
+          title.dataset.taskTitle = "";
+
+          const badge = document.createElement("span");
+          badge.className = "status-badge";
+          badge.dataset.taskBadge = "";
+
+          const meta = document.createElement("p");
+          meta.className = "task-meta";
+          meta.dataset.taskMeta = "";
+
+          const progressTrack = document.createElement("div");
+          progressTrack.className = "progress-track";
+
+          const progressFill = document.createElement("div");
+          progressFill.className = "progress-fill";
+          progressFill.dataset.taskProgress = "";
+
+          const actions = document.createElement("div");
+          actions.className = "task-actions";
+
+          const completeButton = document.createElement("button");
+          completeButton.className = "small-button";
+          completeButton.type = "button";
+          completeButton.textContent = "완료";
+          completeButton.dataset.completeButton = "";
+          completeButton.addEventListener("click", () => {
+            tasks = completeTask(tasks, task.id, Date.now());
+            render();
+          });
+
+          const petButton = document.createElement("button");
+          petButton.className = "small-button reward";
+          petButton.type = "button";
+          petButton.textContent = "쓰다듬기";
+          petButton.dataset.petButton = "";
+          petButton.addEventListener("click", () => {
+            tryPetCat(task.id);
+          });
+
+          const deleteButton = document.createElement("button");
+          deleteButton.className = "small-button secondary";
+          deleteButton.type = "button";
+          deleteButton.textContent = "삭제";
+          deleteButton.addEventListener("click", () => {
+            tasks = deleteTask(tasks, task.id);
+            setMessage("");
+            render();
+          });
+
+          titleRow.append(title, badge);
+          progressTrack.append(progressFill);
+          actions.append(completeButton, petButton, deleteButton);
+          item.append(titleRow, meta, progressTrack, actions);
+          updateTaskItem(item, task);
+
+          return item;
+        }
+
+        function updateTaskItem(item, task) {
+          const title = item.querySelector("[data-task-title]");
+          const badge = item.querySelector("[data-task-badge]");
+          const meta = item.querySelector("[data-task-meta]");
+          const progress = item.querySelector("[data-task-progress]");
+          const completeButton = item.querySelector("[data-complete-button]");
+          const petButton = item.querySelector("[data-pet-button]");
+          const approachPercent = Math.round(calculateCatApproach(task, now) * 100);
+
+          title.textContent = task.text;
+          badge.textContent = getTaskMessage(task);
+          meta.textContent = `마감 ${formatDeadline(task.deadlineAt)} · 접근률 ${approachPercent}%`;
+          progress.style.width = `${approachPercent}%`;
+          completeButton.disabled = task.status !== "active";
+          petButton.disabled = !canPetCat(task, now);
+        }
+
+        function renderTasks() {
+          const taskIds = new Set(tasks.map((task) => task.id));
+          const existingItems = new Map(
+            [...taskList.children].map((item) => [item.dataset.taskId, item]),
+          );
+
+          [...taskList.children].forEach((item) => {
+            if (!taskIds.has(item.dataset.taskId)) {
+              item.remove();
+            }
+          });
+
+          tasks.forEach((task, index) => {
+            const item = existingItems.get(task.id) ?? createTaskItem(task);
+            const currentItem = taskList.children[index];
+
+            updateTaskItem(item, task);
+
+            if (currentItem !== item) {
+              taskList.insertBefore(item, currentItem ?? null);
+            }
+          });
+
+          emptyPark.hidden = tasks.length > 0;
+        }
+
+        function getQuickAddOptions() {
+          const todayKey = getDayKey(Date.now());
+          const todayTaskTexts = new Set(
+            tasks
+              .filter((task) => getDayKey(task.createdAt) === todayKey)
+              .map((task) => normalizeTaskText(task.text)),
+          );
+
+          return taskHistory.filter((item) => !todayTaskTexts.has(item.text));
+        }
+
+        function renderQuickAdd() {
+          const checkedTexts = new Set(
+            [...quickAddList.querySelectorAll("[data-quick-add-checkbox]:checked")]
+              .map((checkbox) => checkbox.value),
+          );
+          const options = getQuickAddOptions();
+
+          quickAddList.textContent = "";
+
+          if (options.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "quick-add-empty";
+            empty.textContent = "아직 빠르게 추가할 이전 할 일이 없어요.";
+            quickAddList.appendChild(empty);
+            quickAddSubmit.disabled = true;
+            return;
+          }
+
+          quickAddSubmit.disabled = false;
+          options.forEach((item) => {
+            const label = document.createElement("label");
+            const checkbox = document.createElement("input");
+            const text = document.createElement("span");
+
+            label.className = "quick-add-item";
+            checkbox.type = "checkbox";
+            checkbox.value = item.text;
+            checkbox.dataset.quickAddCheckbox = "";
+            checkbox.checked = checkedTexts.has(item.text);
+            text.textContent = item.text;
+
+            label.append(checkbox, text);
+            quickAddList.appendChild(label);
+          });
+        }
+
+        function createCalendarCount(label, count) {
+          const item = document.createElement("span");
+          item.className = "calendar-count";
+          item.textContent = `${label} ${count}`;
+          return item;
+        }
+
+        function renderCalendar() {
+          const year = calendarMonth.getFullYear();
+          const month = calendarMonth.getMonth();
+          const firstDay = new Date(year, month, 1);
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const todayKey = getDayKey(now);
+
+          calendarTitle.textContent = `${year}년 ${month + 1}월`;
+          calendarGrid.textContent = "";
+
+          for (let index = 0; index < firstDay.getDay(); index += 1) {
+            const emptyDay = document.createElement("div");
+            emptyDay.className = "calendar-day is-empty";
+            calendarGrid.appendChild(emptyDay);
+          }
+
+          for (let day = 1; day <= daysInMonth; day += 1) {
+            const date = new Date(year, month, day);
+            const dayKey = getDayKey(date.getTime());
+            const record = dailyRecords[dayKey] ?? {
+              activeCount: 0,
+              completedCount: 0,
+            };
+            const dayCell = document.createElement("div");
+            const dayNumber = document.createElement("span");
+
+            dayCell.className = `calendar-day${dayKey === todayKey ? " is-today" : ""}`;
+            dayNumber.className = "calendar-date";
+            dayNumber.textContent = String(day);
+            dayCell.append(
+              dayNumber,
+              createCalendarCount("활", record.activeCount ?? 0),
+              createCalendarCount("완", record.completedCount ?? 0),
+            );
+            calendarGrid.appendChild(dayCell);
+          }
+        }
+
+        function renderPanelView() {
+          const showingCalendar = activePanelView === "calendar";
+
+          taskList.hidden = showingCalendar;
+          calendarView.hidden = !showingCalendar;
+          panelTitle.textContent = showingCalendar ? "기록 캘린더" : "할 일 목록";
+
+          panelViewButtons.forEach((button) => {
+            const isActive = button.dataset.panelViewButton === activePanelView;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", String(isActive));
+          });
+
+          if (showingCalendar) {
+            renderCalendar();
+          }
+        }
+
+        function renderStats() {
+          const stats = calculateTodayStats(Date.now());
+
+          statActive.textContent = String(stats.activeCount);
+          statCompleted.textContent = String(stats.completedCount);
+        }
+
+        const catScene = createCatScene({
+          catStage,
+          onCatClick(taskId) {
+            tryPetCat(taskId);
+          },
+        });
+
+        function render() {
+          now = Date.now();
+          tasks = failOverdueTasks(tasks, now);
+          tasks = hideExpiredFailedCats(tasks, now);
+          saveTasks();
+          saveDailyRecord(now);
+          notifyUpcomingDeadlines(now);
+          currentTime.textContent = formatClock(now);
+          renderStats();
+          renderTasks();
+          renderPanelView();
+          if (!quickAddPanel.hidden) {
+            renderQuickAdd();
+          }
+          catScene.update(tasks, now, pendingPetTaskId);
+        }
+
+        function tryPetCat(taskId) {
+          const targetTask = tasks.find((task) => task.id === taskId);
+
+          if (pendingPetTaskId) {
+            return;
+          }
+
+          if (!targetTask || !canPetCat(targetTask, Date.now())) {
+            setMessage("아직 충분히 가까이 오지 않았어요");
+            return;
+          }
+
+          setMessage("고양이 등을 쓰다듬어 주세요.");
+          showPettedCat(taskId);
+          render();
+        }
+
+        panelViewButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            activePanelView = button.dataset.panelViewButton === "calendar" ? "calendar" : "tasks";
+            render();
+          });
+        });
+
+        calendarPrev.addEventListener("click", () => {
+          calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+          render();
+        });
+
+        calendarNext.addEventListener("click", () => {
+          calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+          render();
+        });
+
+        quickAddToggle.addEventListener("click", () => {
+          quickAddPanel.hidden = !quickAddPanel.hidden;
+
+          if (!quickAddPanel.hidden) {
+            renderQuickAdd();
+          }
+        });
+
+        quickAddSubmit.addEventListener("click", () => {
+          const selectedTexts = [...quickAddList.querySelectorAll("[data-quick-add-checkbox]:checked")]
+            .map((checkbox) => checkbox.value);
+
+          if (selectedTexts.length === 0) {
+            setMessage("추가할 항목을 선택해 주세요");
+            return;
+          }
+
+          if (!deadlineInput.value) {
+            setMessage("마감 시간을 입력해 주세요");
+            deadlineInput.focus();
+            return;
+          }
+
+          const submittedAt = Date.now();
+          const deadlineAt = parseDeadlineTime(deadlineInput.value, submittedAt);
+
+          if (!isValidFutureDeadline(deadlineAt, submittedAt)) {
+            setMessage("현재 시각보다 늦은 마감 시간을 입력해 주세요");
+            deadlineInput.focus();
+            return;
+          }
+
+          selectedTexts.forEach((text) => {
+            tasks = addTask(tasks, text, deadlineAt, submittedAt);
+            rememberTaskText(text, submittedAt);
+          });
+
+          requestReminderPermission().catch(() => {});
+          setMessage("");
+          renderQuickAdd();
+          render();
+        });
+
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+
+          const submittedAt = Date.now();
+          const deadlineAt = parseDeadlineTime(deadlineInput.value, submittedAt);
+          const nextTasks = addTask(tasks, taskInput.value, deadlineAt, submittedAt);
+
+          if (taskInput.value.trim().length === 0) {
+            setMessage("할 일을 입력해 주세요");
+            taskInput.focus();
+            return;
+          }
+
+          if (!deadlineInput.value) {
+            setMessage("마감 시간을 입력해 주세요");
+            deadlineInput.focus();
+            return;
+          }
+
+          if (nextTasks === tasks) {
+            setMessage("현재 시각보다 늦은 마감 시간을 입력해 주세요");
+            deadlineInput.focus();
+            return;
+          }
+
+          requestReminderPermission().catch(() => {});
+          tasks = nextTasks;
+          rememberTaskText(taskInput.value, submittedAt);
+          taskInput.value = "";
+          setMessage("");
+          renderQuickAdd();
+          render();
+        });
+
+        setInterval(render, 250);
+        renderQuickAdd();
+        render();
+      }
+
+      document.addEventListener("DOMContentLoaded", initApp);
+    </script>
+  </body>
+</html>

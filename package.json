@@ -1,0 +1,15 @@
+{
+  "name": "todo-cat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
+  }
+}
