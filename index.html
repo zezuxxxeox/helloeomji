@@ -3050,6 +3050,7 @@
         shareCatImage.src = "./public/cat-summary.png";
         const shareTitleImage = new Image();
         shareTitleImage.src = "./public/title-logo.png";
+        const imageAlphaBounds = new WeakMap();
 
         function parseDayKeyToDate(dayKey) {
           const [yearText, monthText, dayText] = dayKey.split("-");
@@ -3078,6 +3079,46 @@
             height,
           );
           return { width, height };
+        }
+
+        function getImageAlphaBounds(image) {
+          const cachedBounds = imageAlphaBounds.get(image);
+          if (cachedBounds) {
+            return cachedBounds;
+          }
+
+          const width = image.naturalWidth;
+          const height = image.naturalHeight;
+          const boundsCanvas = document.createElement("canvas");
+          boundsCanvas.width = width;
+          boundsCanvas.height = height;
+          const boundsCtx = boundsCanvas.getContext("2d");
+          boundsCtx.drawImage(image, 0, 0);
+          const pixels = boundsCtx.getImageData(0, 0, width, height).data;
+          let left = width;
+          let top = height;
+          let right = -1;
+          let bottom = -1;
+
+          for (let index = 3; index < pixels.length; index += 4) {
+            if (pixels[index] === 0) {
+              continue;
+            }
+
+            const pixelIndex = (index - 3) / 4;
+            const x = pixelIndex % width;
+            const y = Math.floor(pixelIndex / width);
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x);
+            bottom = Math.max(bottom, y);
+          }
+
+          const bounds = right >= 0
+            ? { left, top, right, bottom }
+            : { left: 0, top: 0, right: width - 1, bottom: height - 1 };
+          imageAlphaBounds.set(image, bounds);
+          return bounds;
         }
 
         function buildShareImageDataUrl(dayKey) {
@@ -3222,11 +3263,12 @@
 
           if (shareCatImage.complete && shareCatImage.naturalWidth > 0) {
             const kittyHeight = 529;
-            const ratio = shareCatImage.naturalWidth / shareCatImage.naturalHeight;
-            const kittyWidth = kittyHeight * ratio;
-            const kittyInset = 9;
-            const kittyX = W - 44 - kittyInset - kittyWidth;
-            const kittyY = H - 44 - kittyInset - kittyHeight;
+            const kittyScale = kittyHeight / shareCatImage.naturalHeight;
+            const kittyWidth = shareCatImage.naturalWidth * kittyScale;
+            const kittyBounds = getImageAlphaBounds(shareCatImage);
+            const kittyInset = 46;
+            const kittyX = W - 44 - kittyInset - (kittyBounds.right + 1) * kittyScale;
+            const kittyY = H - 44 - kittyInset - (kittyBounds.bottom + 1) * kittyScale;
             ctx.drawImage(
               shareCatImage,
               kittyX,
