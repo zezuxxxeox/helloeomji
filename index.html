@@ -109,59 +109,6 @@
         min-width: 0;
       }
 
-      .header-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .widget-link,
-      .settings-button {
-        display: inline-flex;
-        min-width: 86px;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-      }
-
-      .settings-panel {
-        width: 100%;
-        border-top: 1px solid rgb(226 232 240);
-        padding-top: 10px;
-      }
-
-      .settings-panel[hidden] {
-        display: none;
-      }
-
-      .settings-toggle {
-        display: inline-flex;
-        max-width: 100%;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid rgb(226 232 240);
-        border-radius: 14px;
-        background: rgb(255 255 255);
-        padding: 8px 10px;
-        color: rgb(38 38 38);
-        font-size: 13px;
-        font-weight: 900;
-      }
-
-      .settings-toggle input {
-        width: 18px;
-        height: 18px;
-        accent-color: rgb(214 47 41);
-      }
-
-      .settings-toggle-state {
-        min-width: 32px;
-        color: rgb(82 82 82);
-        text-align: right;
-        font-size: 12px;
-      }
-
       .stat-item {
         min-width: 104px;
         border: 1px solid rgb(226 232 240);
@@ -590,14 +537,22 @@
       html.is-widget-mode body {
         width: 100%;
         height: 100%;
+        min-height: 100%;
         overflow: hidden;
+        background: rgb(255 255 255);
+      }
+
+      html.is-widget-mode body {
+        display: grid;
+        place-items: center;
       }
 
       html.is-widget-mode .app-shell {
-        width: 100%;
+        width: min(100vw, 100dvh);
+        height: min(100vw, 100dvh);
         max-width: none;
-        height: 100dvh;
-        min-height: 100dvh;
+        min-height: 0;
+        aspect-ratio: 1;
         gap: 0;
         padding: 0;
         overflow: hidden;
@@ -611,16 +566,19 @@
 
       html.is-widget-mode .workbench {
         display: block;
-        height: 100dvh;
-        min-height: 100dvh;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
         overflow: hidden;
       }
 
       html.is-widget-mode .park-stage {
-        height: 100dvh;
-        min-height: 100dvh;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
         border: 0;
         border-radius: 0;
+        background-position: center;
       }
 
       html.is-widget-mode .empty-park {
@@ -848,24 +806,6 @@
 
         .stats-grid {
           width: 100%;
-        }
-
-        .header-actions {
-          width: 100%;
-        }
-
-        .header-actions .small-button {
-          flex: 1 1 0;
-          min-width: 0;
-        }
-
-        .settings-panel {
-          padding-top: 8px;
-        }
-
-        .settings-toggle {
-          width: 100%;
-          justify-content: space-between;
         }
 
         .stat-item {
@@ -1345,19 +1285,6 @@
             <dd data-stat-completed>0</dd>
           </div>
         </dl>
-        <div class="header-actions">
-          <a class="small-button widget-link" href="./?widget=1" target="_blank" rel="noopener" data-widget-link>위젯</a>
-          <button class="small-button secondary settings-button" type="button" aria-expanded="false" data-settings-toggle>
-            설정
-          </button>
-        </div>
-        <div class="settings-panel" data-settings-panel hidden>
-          <label class="settings-toggle">
-            <span>알림 진동</span>
-            <input type="checkbox" data-vibration-toggle />
-            <span class="settings-toggle-state" data-vibration-state>켜짐</span>
-          </label>
-        </div>
       </header>
 
       <section class="control-strip flex flex-wrap items-end gap-3 border-y border-neutral-200 bg-white/80 px-3 py-3">
@@ -1449,7 +1376,6 @@
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
-      const PREFERENCES_STORAGE_KEY = "today-cat-preferences-v1";
 
       function isBlankText(text) {
         return typeof text !== "string" || text.trim().length === 0;
@@ -1827,11 +1753,6 @@
         const pettingHand = document.querySelector("[data-petting-hand]");
         const statActive = document.querySelector("[data-stat-active]");
         const statCompleted = document.querySelector("[data-stat-completed]");
-        const widgetLink = document.querySelector("[data-widget-link]");
-        const settingsToggle = document.querySelector("[data-settings-toggle]");
-        const settingsPanel = document.querySelector("[data-settings-panel]");
-        const vibrationToggle = document.querySelector("[data-vibration-toggle]");
-        const vibrationState = document.querySelector("[data-vibration-state]");
         const quickAddToggle = document.querySelector("[data-quick-add-toggle]");
         const quickAddPanel = document.querySelector("[data-quick-add-panel]");
         const quickAddList = document.querySelector("[data-quick-add-list]");
@@ -1843,9 +1764,8 @@
           !calendarGrid || !calendarPrev || !calendarNext || !emptyPark ||
           !currentTime || !currentDate || !currentClock ||
           !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
-          !statActive || !statCompleted || !widgetLink || !settingsToggle ||
-          !settingsPanel || !vibrationToggle || !vibrationState ||
-          !quickAddToggle || !quickAddPanel || !quickAddList || !quickAddSubmit
+          !statActive || !statCompleted || !quickAddToggle || !quickAddPanel ||
+          !quickAddList || !quickAddSubmit
         ) {
           return;
         }
@@ -1862,7 +1782,6 @@
         let dailyRecords = loadDailyRecords();
         let tasks = loadStoredTasks();
         let taskHistory = loadTaskHistory(tasks);
-        let preferences = loadPreferences();
         let lastSavedTasksText = "";
         let lastSavedRecordsText = "";
 
@@ -1883,11 +1802,6 @@
         let lockedScrollY = 0;
         const remindedTaskKeys = new Set();
 
-        const widgetUrl = new URL(window.location.href);
-        widgetUrl.searchParams.set("widget", "1");
-        widgetUrl.hash = "";
-        widgetLink.href = widgetUrl.toString();
-
         function readStoredJson(key, fallback) {
           try {
             const savedValue = localStorage.getItem(key);
@@ -1901,25 +1815,6 @@
           try {
             localStorage.setItem(key, JSON.stringify(value));
           } catch (_) {}
-        }
-
-        function normalizePreferences(value) {
-          return {
-            reminderVibration: value?.reminderVibration !== false,
-          };
-        }
-
-        function loadPreferences() {
-          return normalizePreferences(readStoredJson(PREFERENCES_STORAGE_KEY, {}));
-        }
-
-        function savePreferences() {
-          writeStoredJson(PREFERENCES_STORAGE_KEY, preferences);
-        }
-
-        function renderSettings() {
-          vibrationToggle.checked = preferences.reminderVibration;
-          vibrationState.textContent = preferences.reminderVibration ? "켜짐" : "꺼짐";
         }
 
         function loadStoredTasks() {
@@ -2368,9 +2263,7 @@
               renotify: true,
             };
 
-            if (preferences.reminderVibration) {
-              notificationOptions.vibrate = [120, 60, 120];
-            }
+            notificationOptions.vibrate = [120, 60, 120];
 
             new Notification("HELLO EOMJI", notificationOptions);
           } catch (_) {}
@@ -2382,7 +2275,7 @@
           setMessage(reminderText);
           sendBrowserReminder(task);
 
-          if (preferences.reminderVibration && navigator.vibrate) {
+          if (navigator.vibrate) {
             navigator.vibrate([120, 60, 120]);
           }
         }
@@ -2773,21 +2666,6 @@
           render();
         });
 
-        settingsToggle.addEventListener("click", () => {
-          const willOpen = settingsPanel.hidden;
-          settingsPanel.hidden = !willOpen;
-          settingsToggle.setAttribute("aria-expanded", String(willOpen));
-        });
-
-        vibrationToggle.addEventListener("change", () => {
-          preferences = {
-            ...preferences,
-            reminderVibration: vibrationToggle.checked,
-          };
-          savePreferences();
-          renderSettings();
-        });
-
         quickAddToggle.addEventListener("click", () => {
           quickAddPanel.hidden = !quickAddPanel.hidden;
 
@@ -2882,7 +2760,6 @@
         });
 
         setInterval(render, 250);
-        renderSettings();
         renderQuickAdd();
         render();
       }
