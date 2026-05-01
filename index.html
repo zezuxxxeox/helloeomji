@@ -138,6 +138,7 @@
       }
 
       .field-group input {
+        box-sizing: border-box;
         width: 100%;
         min-width: 0;
         max-width: 100%;
@@ -308,16 +309,32 @@
         font-weight: 850;
       }
 
-      .quick-add-item input {
+      .quick-add-item input[type="checkbox"] {
         flex: 0 0 auto;
         accent-color: rgb(219 39 119);
       }
 
-      .quick-add-item span {
+      .quick-add-text {
+        flex: 1 1 auto;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .quick-add-time {
+        box-sizing: border-box;
+        width: 86px;
+        height: 28px;
+        flex: 0 0 auto;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 8px;
+        background: rgb(255 255 255);
+        padding: 2px 6px;
+        color: rgb(38 38 38);
+        font-size: 12px;
+        font-weight: 800;
       }
 
       .quick-add-empty {
@@ -454,7 +471,7 @@
         width: auto;
         height: auto;
         background: none;
-        font-size: clamp(48px, 6.4vw, 80px);
+        font-size: clamp(24px, 3.2vw, 40px);
         line-height: 1;
         opacity: 0.96;
         text-shadow: none;
@@ -522,7 +539,6 @@
         align-items: center;
         justify-content: center;
         background: rgba(15, 23, 42, 0.18);
-        --petting-progress: 0;
       }
 
       .petted-overlay[hidden] {
@@ -530,8 +546,7 @@
       }
 
       .petted-cat {
-        width: clamp(448px, 63vw, 854px);
-        max-height: 94vh;
+        width: min(56vw, 480px, calc(88dvh * 0.563));
         height: auto;
         transform: translate(-8%, 28%) scale(1);
         animation: pettedPop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -559,29 +574,6 @@
           opacity: 1;
           transform: translate(-8%, 28%) scale(1);
         }
-      }
-
-      .petting-meter {
-        position: fixed;
-        left: 50%;
-        bottom: clamp(24px, 7vh, 66px);
-        z-index: 101;
-        width: min(340px, 72vw);
-        height: 8px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.78);
-        background: rgba(15, 23, 42, 0.26);
-        transform: translateX(-50%);
-      }
-
-      .petting-meter span {
-        display: block;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, rgb(14 116 144), rgb(250 204 21), rgb(251 113 133));
-        transform: scaleX(var(--petting-progress));
-        transform-origin: 0 50%;
-        transition: transform 0.12s ease-out;
       }
 
       .petting-hand {
@@ -661,7 +653,7 @@
         top: 32%;
         z-index: 103;
         pointer-events: none;
-        font-size: clamp(48px, 6.4vw, 80px);
+        font-size: clamp(24px, 3.2vw, 40px);
         line-height: 1;
         text-shadow: none;
         animation: heartBurst 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -712,8 +704,8 @@
         }
 
         .task-panel {
-          min-height: 320px;
-          max-height: 360px;
+          min-height: 640px;
+          max-height: 660px;
         }
 
         .message-line {
@@ -801,6 +793,7 @@
         }
 
         .field-group input {
+          width: 100%;
           display: block;
           max-width: 100%;
           min-inline-size: 0;
@@ -808,6 +801,7 @@
           padding: 9px 10px;
         }
 
+        .field-group input[type="date"],
         .field-group input[type="time"] {
           -webkit-appearance: none;
           appearance: none;
@@ -864,7 +858,7 @@
 
         .panel-heading span {
           min-width: 0;
-          color: rgb(236 0 140);
+          color: rgb(214 47 41);
           text-align: center;
           font-size: 20px;
           font-weight: 950;
@@ -885,7 +879,8 @@
 
         .task-panel {
           border-radius: 20px;
-          max-height: 340px;
+          min-height: 640px;
+          max-height: 660px;
         }
 
         .task-list,
@@ -914,9 +909,7 @@
         }
 
         .petted-cat {
-          width: min(120vw, 620px);
-          max-height: 92dvh;
-          object-fit: contain;
+          width: min(86vw, 420px, calc(84dvh * 0.563));
           transform: translate(0, 0) scale(1);
           animation-name: pettedPopMobile;
         }
@@ -985,7 +978,7 @@
 
         .panel-heading span {
           min-width: 0;
-          color: rgb(236 0 140);
+          color: rgb(214 47 41);
         }
       }
 
@@ -1179,14 +1172,13 @@
       .progress-fill {
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, rgb(251 207 232), rgb(255 87 178), rgb(219 39 119));
+        background: linear-gradient(90deg, rgb(255 232 230), rgb(236 112 96), rgb(214 47 41));
       }
     </style>
   </head>
   <body class="min-h-screen bg-white text-neutral-950">
     <div class="petted-overlay" data-petted-overlay hidden>
       <img class="petted-cat" data-petted-cat src="./cat-petted.png" alt="" />
-      <div class="petting-meter" aria-hidden="true"><span></span></div>
       <div class="petting-hand" data-petting-hand hidden></div>
     </div>
 
@@ -1238,7 +1230,7 @@
         <p class="message-line" role="alert" data-message></p>
         <div class="quick-add-panel" data-quick-add-panel hidden>
           <div class="quick-add-toolbar">
-            <strong class="quick-add-title">전에 추가했던 할 일</strong>
+            <strong class="quick-add-title">이전에 추가했던 할 일</strong>
             <button class="small-button reward" type="button" data-quick-add-submit>선택 추가</button>
           </div>
           <div class="quick-add-list" data-quick-add-list></div>
@@ -1615,7 +1607,7 @@
           const isArrived = !isFailed && approach >= 1;
           const sideSpread = isFailed ? 32 : 90 * (1 - approach * 0.65);
           const laneOffset = lane * sideSpread;
-          const bottomPercent = isFailed ? -6 : 32 - approach * 44;
+          const bottomPercent = isFailed ? -18 : 31 - approach * 50;
 
           sprite.style.bottom = `${bottomPercent}%`;
           sprite.style.transform = `translate(calc(-50% + ${laneOffset}px), 0) scale(${perspective.scale})`;
@@ -1692,10 +1684,8 @@
 
         calendarMonth.setDate(1);
 
-        const PET_TARGET_MS = 2200;
         const MOVE_GRACE_MS = 180;
         let isDragging = false;
-        let pettingMs = 0;
         let lastMoveAt = 0;
         let lastTickAt = 0;
         let lastSparkleAt = 0;
@@ -1703,10 +1693,10 @@
         let pointerY = 0;
         let pettingRafId = 0;
         let pettingActive = false;
+        let hasPettedDuringSession = false;
         let pendingPetTaskId = null;
         let reminderPermissionRequest = null;
         let lockedScrollY = 0;
-        let wheelPetPhase = 0;
         const remindedTaskKeys = new Set();
 
         function readStoredJson(key, fallback) {
@@ -1855,34 +1845,65 @@
           return `${year}-${month}-${day}`;
         }
 
-        function calculateTodayStats(statsNow) {
-          const todayKey = getDayKey(statsNow);
-          const todayTasks = tasks.filter((task) => getDayKey(task.createdAt) === todayKey);
-          const todayStatusStats = calculateStats(todayTasks);
+        function buildDailyRecordFromTasks(dayTasks) {
+          const stats = calculateStats(dayTasks);
 
           return {
-            ...todayStatusStats,
-            activeCount: todayTasks.length,
-            totalCount: todayTasks.length,
+            activeCount: dayTasks.length,
+            completedCount: stats.completedCount,
+            pettedCount: stats.pettedCount,
+            returnedCatCount: stats.returnedCatCount,
+            totalCount: dayTasks.length,
           };
         }
 
+        function calculateTodayStats(statsNow) {
+          const todayKey = getDayKey(statsNow);
+          const todayTasks = tasks.filter((task) => getDayKey(task.createdAt) === todayKey);
+          return buildDailyRecordFromTasks(todayTasks);
+        }
+
         function saveDailyRecord(recordNow) {
-          const stats = calculateTodayStats(recordNow);
           const dayKey = getDayKey(recordNow);
 
           dailyRecords = {
             ...dailyRecords,
-            [dayKey]: {
-              activeCount: stats.activeCount,
-              completedCount: stats.completedCount,
-              pettedCount: stats.pettedCount,
-              returnedCatCount: stats.returnedCatCount,
-              totalCount: stats.totalCount,
-            },
+            [dayKey]: calculateTodayStats(recordNow),
           };
 
           saveDailyRecords();
+        }
+
+        function archivePastTasks(recordNow) {
+          const todayKey = getDayKey(recordNow);
+          const currentTasks = [];
+          const pastTasksByDay = new Map();
+
+          tasks.forEach((task) => {
+            const taskDayKey = getDayKey(task.createdAt);
+
+            if (taskDayKey === todayKey) {
+              currentTasks.push(task);
+              return;
+            }
+
+            const dayTasks = pastTasksByDay.get(taskDayKey) ?? [];
+            dayTasks.push(task);
+            pastTasksByDay.set(taskDayKey, dayTasks);
+          });
+
+          if (pastTasksByDay.size === 0) {
+            return false;
+          }
+
+          const nextDailyRecords = { ...dailyRecords };
+          pastTasksByDay.forEach((dayTasks, dayKey) => {
+            nextDailyRecords[dayKey] = buildDailyRecordFromTasks(dayTasks);
+          });
+          dailyRecords = nextDailyRecords;
+          tasks = currentTasks;
+          saveDailyRecords();
+          return true;
         }
 
         function positionHand(clientX, clientY) {
@@ -1926,20 +1947,6 @@
           pettingHand.hidden = false;
         }
 
-        function moveHandWithScroll(deltaX, deltaY) {
-          const rect = pettedCat.getBoundingClientRect();
-          const delta = Math.abs(deltaY) > Math.abs(deltaX) ? deltaY : deltaX;
-
-          wheelPetPhase += Math.sign(delta || 1) * Math.min(Math.abs(delta || 1), 90) * 0.045;
-          positionHand(
-            rect.left + rect.width * (0.52 + Math.sin(wheelPetPhase) * 0.16),
-            rect.top + rect.height * (0.38 + Math.cos(wheelPetPhase * 0.75) * 0.05),
-          );
-          pettingHand.hidden = false;
-          isDragging = true;
-          lastMoveAt = performance.now();
-        }
-
         function isPointOnPettedCat(clientX, clientY) {
           const rect = pettedCat.getBoundingClientRect();
           return (
@@ -1959,19 +1966,14 @@
           pettingHand.hidden = false;
           if (isDragging && isPointOnPettedCat(event.clientX, event.clientY)) {
             lastMoveAt = performance.now();
+            hasPettedDuringSession = true;
             return;
           }
 
           if (isDragging) {
-            isDragging = false;
             pettingHand.classList.remove("is-rubbing");
             pettedCat.classList.remove("is-being-petted");
           }
-        }
-
-        function updatePettingProgress() {
-          const progress = Math.min(pettingMs / PET_TARGET_MS, 1);
-          pettedOverlay.style.setProperty("--petting-progress", String(progress));
         }
 
         function emitSparkle() {
@@ -1998,21 +2000,12 @@
           }
 
           if (lastTickAt > 0 && isDragging && timestamp - lastMoveAt < MOVE_GRACE_MS) {
-            const delta = timestamp - lastTickAt;
-            pettingMs += delta;
-            updatePettingProgress();
-
             pettingHand.classList.add("is-rubbing");
             pettedCat.classList.add("is-being-petted");
 
             if (timestamp - lastSparkleAt > 700) {
               emitSparkle();
               lastSparkleAt = timestamp;
-            }
-
-            if (pettingMs >= PET_TARGET_MS) {
-              completePetting();
-              return;
             }
           } else {
             pettingHand.classList.remove("is-rubbing");
@@ -2024,13 +2017,9 @@
         }
 
         function startPettingSession() {
-          pettingMs = 0;
-          isDragging = false;
-          lastMoveAt = 0;
           lastTickAt = 0;
           lastSparkleAt = 0;
           pettingActive = true;
-          updatePettingProgress();
           if (pettingRafId) {
             cancelAnimationFrame(pettingRafId);
           }
@@ -2053,33 +2042,32 @@
           const taskId = pendingPetTaskId;
 
           pendingPetTaskId = null;
-          pettingMs = PET_TARGET_MS;
-          updatePettingProgress();
           endPettingSession();
           emitHeart();
           if (taskId) {
             tasks = petCat(tasks, taskId, Date.now());
-            setMessage("쓰다듬 완료. 헬로키티가 만족했어요.");
+            setMessage("쓰다듬기 완료. 헬로키티가 행복해하네요.");
             render();
           }
           setTimeout(() => {
             pettedOverlay.hidden = true;
-            pettedOverlay.style.setProperty("--petting-progress", "0");
             unlockPageScroll();
           }, 900);
         }
 
         function showPettedCat(taskId) {
           pendingPetTaskId = taskId;
-          pettingMs = 0;
-          wheelPetPhase = 0;
+          isDragging = false;
+          lastMoveAt = 0;
+          lastTickAt = 0;
+          lastSparkleAt = 0;
+          pettingActive = false;
+          hasPettedDuringSession = false;
           lockPageScroll();
-          pettedOverlay.style.setProperty("--petting-progress", "0");
           pettedOverlay.hidden = false;
           pettedCat.style.animation = "none";
           void pettedCat.offsetWidth;
           pettedCat.style.animation = "";
-          startPettingSession();
           requestAnimationFrame(showHandAtRest);
         }
 
@@ -2088,8 +2076,10 @@
           isDragging = true;
           lastMoveAt = performance.now();
           lastSparkleAt = 0;
+          hasPettedDuringSession = true;
           positionHand(event.clientX, event.clientY);
           pettingHand.hidden = false;
+          startPettingSession();
           if (pettedCat.setPointerCapture) {
             try {
               pettedCat.setPointerCapture(event.pointerId);
@@ -2099,9 +2089,23 @@
 
         pettedOverlay.addEventListener("pointermove", followPointer);
 
-        const releaseDrag = () => {
+        const releaseDrag = (event) => {
+          if (event?.pointerId != null && pettedCat.releasePointerCapture) {
+            try {
+              pettedCat.releasePointerCapture(event.pointerId);
+            } catch (_) {}
+          }
+
+          const shouldCompletePetting = pendingPetTaskId && hasPettedDuringSession;
           isDragging = false;
           pettingHand.classList.remove("is-rubbing");
+          pettedCat.classList.remove("is-being-petted");
+          if (shouldCompletePetting) {
+            completePetting();
+            return;
+          }
+
+          endPettingSession();
         };
 
         pettedCat.addEventListener("pointerup", releaseDrag);
@@ -2109,12 +2113,6 @@
         pettedOverlay.addEventListener("pointerleave", releaseDrag);
         pettedOverlay.addEventListener("touchmove", (event) => {
           event.preventDefault();
-        }, { passive: false });
-        pettedOverlay.addEventListener("wheel", (event) => {
-          event.preventDefault();
-          if (pettingActive) {
-            moveHandWithScroll(event.deltaX, event.deltaY);
-          }
         }, { passive: false });
 
         function setMessage(text) {
@@ -2150,7 +2148,7 @@
 
           try {
             new Notification("HELLO EOMJI", {
-              body: `"${task.text}" 마감 10분 전이에요.`,
+              body: `${task.text} 마감시간이 10분 남았어요.`,
               tag: `today-cat-${task.id}-${task.deadlineAt}`,
               renotify: true,
             });
@@ -2158,7 +2156,7 @@
         }
 
         function sendDeadlineReminder(task) {
-          const reminderText = `"${task.text}" 마감 10분 전이에요.`;
+          const reminderText = `${task.text} 마감시간이 10분 남았어요.`;
 
           setMessage(reminderText);
           sendBrowserReminder(task);
@@ -2205,7 +2203,7 @@
           }
 
           if (task.status === "petted") {
-            return "골골골...";
+            return "완료";
           }
 
           return "놓쳤어요";
@@ -2267,6 +2265,9 @@
           deleteButton.addEventListener("click", () => {
             tasks = deleteTask(tasks, task.id);
             setMessage("");
+            if (!quickAddPanel.hidden) {
+              renderQuickAdd();
+            }
             render();
           });
 
@@ -2334,42 +2335,78 @@
         }
 
         function renderQuickAdd() {
-          const checkedTexts = new Set(
-            [...quickAddList.querySelectorAll("[data-quick-add-checkbox]:checked")]
-              .map((checkbox) => checkbox.value),
+          const itemStates = new Map(
+            [...quickAddList.querySelectorAll("[data-quick-add-item]")]
+              .map((row) => {
+                const checkbox = row.querySelector("[data-quick-add-checkbox]");
+                const timeInput = row.querySelector("[data-quick-add-time]");
+                return [
+                  checkbox?.value,
+                  {
+                    checked: Boolean(checkbox?.checked),
+                    deadlineTime: timeInput?.value ?? "",
+                  },
+                ];
+              })
+              .filter(([text]) => Boolean(text)),
           );
           const options = getQuickAddOptions();
 
           quickAddList.textContent = "";
 
           if (options.length === 0) {
-            const empty = document.createElement("p");
-            empty.className = "quick-add-empty";
-            empty.textContent = "아직 빠르게 추가할 이전 할 일이 없어요.";
-            quickAddList.appendChild(empty);
             quickAddSubmit.disabled = true;
             return;
           }
 
           quickAddSubmit.disabled = false;
-          options.forEach((item) => {
-            const label = document.createElement("label");
+          options.forEach((item, index) => {
+            const row = document.createElement("div");
             const checkbox = document.createElement("input");
-            const text = document.createElement("span");
+            const text = document.createElement("label");
+            const timeInput = document.createElement("input");
+            const savedState = itemStates.get(item.text);
+            const checkboxId = `quick-add-${index}`;
 
-            label.className = "quick-add-item";
+            row.className = "quick-add-item";
+            row.dataset.quickAddItem = "";
             checkbox.type = "checkbox";
+            checkbox.id = checkboxId;
             checkbox.value = item.text;
             checkbox.dataset.quickAddCheckbox = "";
-            if (item.deadlineTime) {
-              checkbox.dataset.deadlineTime = item.deadlineTime;
-            }
-            checkbox.checked = checkedTexts.has(item.text);
+            checkbox.checked = savedState?.checked ?? false;
+            text.className = "quick-add-text";
+            text.htmlFor = checkboxId;
             text.textContent = item.text;
+            text.dataset.quickAddText = "";
+            timeInput.className = "quick-add-time";
+            timeInput.type = "time";
+            timeInput.value = savedState?.deadlineTime ?? item.deadlineTime ?? "";
+            timeInput.dataset.quickAddTime = "";
+            timeInput.setAttribute("aria-label", `${item.text} 마감 시간`);
+            timeInput.addEventListener("focus", () => {
+              checkbox.checked = true;
+            });
 
-            label.append(checkbox, text);
-            quickAddList.appendChild(label);
+            row.append(checkbox, text, timeInput);
+            quickAddList.appendChild(row);
           });
+        }
+
+        function getSelectedQuickAddItems() {
+          return [...quickAddList.querySelectorAll("[data-quick-add-item]")]
+            .map((row) => {
+              const checkbox = row.querySelector("[data-quick-add-checkbox]");
+              const timeInput = row.querySelector("[data-quick-add-time]");
+
+              return {
+                text: checkbox?.value ?? "",
+                checked: Boolean(checkbox?.checked),
+                deadlineTime: timeInput?.value ?? "",
+                timeInput,
+              };
+            })
+            .filter((item) => item.checked && item.text);
         }
 
         function createCalendarCount(icon, variant, count) {
@@ -2459,15 +2496,20 @@
           now = Date.now();
           tasks = failOverdueTasks(tasks, now);
           tasks = hideExpiredFailedCats(tasks, now);
+          const archivedPastTasks = archivePastTasks(now);
           saveTasks();
           saveDailyRecord(now);
           notifyUpcomingDeadlines(now);
           currentTime.textContent = formatClockWithDate(now);
-          dateInput.min = formatDateInputValue(now);
+          const todayDate = formatDateInputValue(now);
+          dateInput.min = todayDate;
+          if (!dateInput.value || dateInput.value < todayDate) {
+            dateInput.value = todayDate;
+          }
           renderStats();
           renderTasks();
           renderPanelView();
-          if (!quickAddPanel.hidden) {
+          if (archivedPastTasks && !quickAddPanel.hidden) {
             renderQuickAdd();
           }
           catScene.update(tasks, now, pendingPetTaskId);
@@ -2515,26 +2557,10 @@
           }
         });
 
-        quickAddList.addEventListener("change", (event) => {
-          const target = event.target;
-          if (
-            !(target instanceof HTMLInputElement) ||
-            !("quickAddCheckbox" in target.dataset) ||
-            !target.checked
-          ) {
-            return;
-          }
-          const savedTime = target.dataset.deadlineTime;
-          if (savedTime) {
-            deadlineInput.value = savedTime;
-          }
-        });
-
         quickAddSubmit.addEventListener("click", () => {
-          const selectedTexts = [...quickAddList.querySelectorAll("[data-quick-add-checkbox]:checked")]
-            .map((checkbox) => checkbox.value);
+          const selectedItems = getSelectedQuickAddItems();
 
-          if (selectedTexts.length === 0) {
+          if (selectedItems.length === 0) {
             setMessage("추가할 항목을 선택해 주세요");
             return;
           }
@@ -2545,24 +2571,29 @@
             return;
           }
 
-          if (!deadlineInput.value) {
-            setMessage("마감 시간을 입력해 주세요");
-            deadlineInput.focus();
+          const missingTimeItem = selectedItems.find((item) => !item.deadlineTime);
+          if (missingTimeItem) {
+            setMessage("빠른 추가 시간을 입력해 주세요");
+            missingTimeItem.timeInput?.focus();
             return;
           }
 
           const submittedAt = Date.now();
-          const deadlineAt = parseDeadline(dateInput.value, deadlineInput.value, submittedAt);
+          const selectedTasks = selectedItems.map((item) => ({
+            ...item,
+            deadlineAt: parseDeadline(dateInput.value, item.deadlineTime, submittedAt),
+          }));
+          const invalidTimeItem = selectedTasks.find((item) => !isValidFutureDeadline(item.deadlineAt, submittedAt));
 
-          if (!isValidFutureDeadline(deadlineAt, submittedAt)) {
-            setMessage("현재 시각보다 늦은 마감 시간을 입력해 주세요");
-            deadlineInput.focus();
+          if (invalidTimeItem) {
+            setMessage("현재 시각보다 늦은 빠른 추가 시간을 입력해 주세요");
+            invalidTimeItem.timeInput?.focus();
             return;
           }
 
-          selectedTexts.forEach((text) => {
-            tasks = addTask(tasks, text, deadlineAt, submittedAt);
-            rememberTaskText(text, submittedAt, deadlineInput.value);
+          selectedTasks.forEach((item) => {
+            tasks = addTask(tasks, item.text, item.deadlineAt, submittedAt);
+            rememberTaskText(item.text, submittedAt, item.deadlineTime);
           });
 
           requestReminderPermission().catch(() => {});
