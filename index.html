@@ -1278,6 +1278,10 @@
         color: var(--title-red);
       }
 
+      .calendar-count--rescued .calendar-count-icon {
+        color: rgb(217 119 6);
+      }
+
       .calendar-detail {
         display: grid;
         gap: 8px;
@@ -1303,11 +1307,19 @@
 
       .calendar-detail-item {
         display: grid;
-        gap: 3px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
         border: 1px solid rgb(226 232 240);
         border-radius: 12px;
         background: rgb(255 255 255);
         padding: 9px 10px;
+      }
+
+      .calendar-detail-main {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
       }
 
       .calendar-detail-name {
@@ -1315,6 +1327,13 @@
         font-size: 13px;
         font-weight: 900;
         overflow-wrap: anywhere;
+      }
+
+      .calendar-detail-action {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 6px 10px;
       }
 
       .calendar-detail-meta {
@@ -2153,8 +2172,8 @@
           );
         }
 
-        function getRescueRemaining(dayTimestamp, reason) {
-          return Math.max(0, DAILY_RESCUE_LIMIT_PER_REASON - getRescueCount(dayTimestamp, reason));
+        function getRescueRemaining() {
+          return Number.POSITIVE_INFINITY;
         }
 
         function summarizeCalendarTask(task) {
@@ -2229,8 +2248,8 @@
           return `${Number(monthText)}월 ${Number(dayText)}일 할 일`;
         }
 
-        function canRescueLateTask(task, rescueNow, reason) {
-          return task?.status === "failed" && getRescueRemaining(rescueNow, reason) > 0;
+        function canRescueLateTask(task) {
+          return task?.status === "failed";
         }
 
         function incrementRescueCount(rescueNow, reason) {
@@ -2758,16 +2777,12 @@
           completeButton.disabled = task.status !== "active";
           rescueButtons.forEach((button) => {
             const reason = button.dataset.rescueButton;
-            const remaining = getRescueRemaining(now, reason);
             const label = reason === "forgot" ? "깜빡했어" : "늦게했어";
 
             button.hidden = task.status !== "failed";
-            button.disabled = task.status !== "failed" || remaining <= 0;
-            button.title =
-              remaining > 0
-                ? `오늘 ${remaining}번 남았어요`
-                : `오늘 ${label}를 모두 사용했어요`;
-            button.textContent = remaining > 0 ? label : `${label} 소진`;
+            button.disabled = task.status !== "failed";
+            button.title = label;
+            button.textContent = label;
           });
           petButton.disabled = !canPetCat(task, now);
         }
@@ -2904,6 +2919,33 @@
           return item;
         }
 
+        function addToTodayFromCalendar(item) {
+          const submittedAt = Date.now();
+          const todayDateValue = formatDateInputValue(submittedAt);
+          const itemTime = formatDeadlineTimeInput(item.deadlineAt);
+          let deadlineAt = itemTime
+            ? parseDeadline(todayDateValue, itemTime, submittedAt)
+            : Number.NaN;
+
+          if (!isValidFutureDeadline(deadlineAt, submittedAt)) {
+            deadlineAt = submittedAt + 60 * 60 * 1000;
+          }
+
+          const nextTasks = addTask(tasks, item.text, deadlineAt, submittedAt);
+
+          if (nextTasks === tasks) {
+            setMessage("오늘 할 일에 추가할 수 없어요");
+            return;
+          }
+
+          tasks = nextTasks;
+          rememberTaskText(item.text, submittedAt, formatDeadlineTimeInput(deadlineAt));
+          requestReminderPermission().catch(() => {});
+          setMessage("오늘 할 일에 추가했어요");
+          renderQuickAdd();
+          render();
+        }
+
         function renderCalendarDetail() {
           const items = getCalendarTaskItems(selectedCalendarDayKey)
             .slice()
@@ -2934,21 +2976,31 @@
 
           items.forEach((item) => {
             const row = document.createElement("div");
+            const main = document.createElement("div");
             const name = document.createElement("span");
             const meta = document.createElement("span");
             const status = document.createElement("span");
+            const action = document.createElement("button");
             const deadlineText = Number.isFinite(item.deadlineAt) && item.deadlineAt > 0
               ? `마감 ${formatDeadline(item.deadlineAt)}`
               : "마감 시간 없음";
 
             row.className = "calendar-detail-item";
+            main.className = "calendar-detail-main";
             name.className = "calendar-detail-name";
             name.textContent = item.text;
             meta.className = "calendar-detail-meta";
             status.className = "calendar-detail-status";
             status.textContent = getCalendarTaskStatusLabel(item);
             meta.append(status, ` · ${deadlineText}`);
-            row.append(name, meta);
+            main.append(name, meta);
+
+            action.type = "button";
+            action.className = "small-button calendar-detail-action";
+            action.textContent = "오늘도 할래";
+            action.addEventListener("click", () => addToTodayFromCalendar(item));
+
+            row.append(main, action);
             calendarDetailList.appendChild(row);
           });
         }
@@ -2983,6 +3035,8 @@
               activeCount: 0,
               completedCount: 0,
             };
+            const rescueCounts = normalizeRescueCounts(record.rescueCounts);
+            const rescueTotal = rescueCounts.forgot + rescueCounts.late;
             const dayCell = document.createElement("button");
             const dayNumber = document.createElement("span");
             const dayClassNames = ["calendar-day"];
@@ -3011,6 +3065,9 @@
               createCalendarCount("✓", "done", record.completedCount ?? 0),
               createCalendarCount("✗", "failed", record.returnedCatCount ?? 0),
             );
+            if (rescueTotal > 0) {
+              dayCell.append(createCalendarCount("↺", "rescued", rescueTotal));
+            }
             calendarGrid.appendChild(dayCell);
           }
 
