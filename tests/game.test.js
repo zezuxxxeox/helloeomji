@@ -119,6 +119,16 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(calculateCatApproach(task, now + 3_000)).toBe(0.5);
   });
 
+  it("future scheduled cats start approaching on their scheduled date", () => {
+    const createdYesterday = new Date(2026, 3, 28, 12, 0, 0, 0).getTime();
+    const scheduledDayStart = new Date(2026, 3, 29, 0, 0, 0, 0).getTime();
+    const scheduledDeadline = new Date(2026, 3, 29, 8, 0, 0, 0).getTime();
+    const task = activeTask({ createdAt: createdYesterday, deadlineAt: scheduledDeadline });
+
+    expect(calculateCatApproach(task, createdYesterday + 1_000)).toBe(0);
+    expect(calculateCatApproach(task, scheduledDayStart + 4 * 60 * 60 * 1000)).toBeCloseTo(0.5);
+  });
+
   it("완료 버튼은 접근률을 새로 시작하지 않는다", () => {
     const tasks = [activeTask({ deadlineAt: shortDeadline })];
     const completedAt = now + 2_000;

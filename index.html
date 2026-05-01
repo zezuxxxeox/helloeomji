@@ -13,6 +13,11 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <title>HELLO EOMJI</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script>
+      if (new URLSearchParams(window.location.search).get("widget") === "1") {
+        document.documentElement.classList.add("is-widget-mode");
+      }
+    </script>
     <style>
       html,
       body {
@@ -102,6 +107,59 @@
       .stats-grid {
         width: min(100%, 228px);
         min-width: 0;
+      }
+
+      .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .widget-link,
+      .settings-button {
+        display: inline-flex;
+        min-width: 86px;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+      }
+
+      .settings-panel {
+        width: 100%;
+        border-top: 1px solid rgb(226 232 240);
+        padding-top: 10px;
+      }
+
+      .settings-panel[hidden] {
+        display: none;
+      }
+
+      .settings-toggle {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 14px;
+        background: rgb(255 255 255);
+        padding: 8px 10px;
+        color: rgb(38 38 38);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .settings-toggle input {
+        width: 18px;
+        height: 18px;
+        accent-color: rgb(214 47 41);
+      }
+
+      .settings-toggle-state {
+        min-width: 32px;
+        color: rgb(82 82 82);
+        text-align: right;
+        font-size: 12px;
       }
 
       .stat-item {
@@ -528,6 +586,47 @@
         grid-template-rows: auto 1fr;
       }
 
+      html.is-widget-mode,
+      html.is-widget-mode body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      html.is-widget-mode .app-shell {
+        width: 100%;
+        max-width: none;
+        height: 100dvh;
+        min-height: 100dvh;
+        gap: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      html.is-widget-mode .app-shell > header,
+      html.is-widget-mode .control-strip,
+      html.is-widget-mode .task-panel {
+        display: none;
+      }
+
+      html.is-widget-mode .workbench {
+        display: block;
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+      }
+
+      html.is-widget-mode .park-stage {
+        height: 100dvh;
+        min-height: 100dvh;
+        border: 0;
+        border-radius: 0;
+      }
+
+      html.is-widget-mode .empty-park {
+        display: none;
+      }
+
       .petted-overlay {
         position: fixed;
         inset: 0;
@@ -751,6 +850,24 @@
           width: 100%;
         }
 
+        .header-actions {
+          width: 100%;
+        }
+
+        .header-actions .small-button {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+
+        .settings-panel {
+          padding-top: 8px;
+        }
+
+        .settings-toggle {
+          width: 100%;
+          justify-content: space-between;
+        }
+
         .stat-item {
           min-width: 0;
           border-radius: 14px;
@@ -856,12 +973,24 @@
           font-size: 20px;
         }
 
-        .panel-heading span {
+        .panel-heading .current-time {
           min-width: 0;
           color: rgb(214 47 41);
           text-align: center;
           font-size: 20px;
           font-weight: 950;
+          font-variant-numeric: tabular-nums;
+          line-height: 1.12;
+        }
+
+        .panel-heading .current-date,
+        .panel-heading .current-clock {
+          display: block;
+          white-space: nowrap;
+        }
+
+        .panel-heading .current-clock {
+          min-width: 8ch;
         }
 
         .panel-tabs {
@@ -915,7 +1044,8 @@
         }
 
         .petted-heart {
-          top: 36%;
+          top: 6%;
+          font-size: clamp(36px, 4.8vw, 60px);
         }
 
         @keyframes pettedPopMobile {
@@ -958,10 +1088,22 @@
         font-weight: 950;
       }
 
-      .panel-heading span {
+      .panel-heading .current-time {
         color: rgb(82 82 82);
         font-size: 13px;
         font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.18;
+      }
+
+      .panel-heading .current-date,
+      .panel-heading .current-clock {
+        display: block;
+        white-space: nowrap;
+      }
+
+      .panel-heading .current-clock {
+        min-width: 8ch;
       }
 
       @media (max-width: 520px) {
@@ -974,13 +1116,13 @@
         }
 
         .panel-heading h2,
-        .panel-heading span {
+        .panel-heading .current-time {
           text-align: center;
           font-size: 20px;
           font-weight: 950;
         }
 
-        .panel-heading span {
+        .panel-heading .current-time {
           min-width: 0;
           color: rgb(214 47 41);
         }
@@ -1203,6 +1345,19 @@
             <dd data-stat-completed>0</dd>
           </div>
         </dl>
+        <div class="header-actions">
+          <a class="small-button widget-link" href="./?widget=1" target="_blank" rel="noopener" data-widget-link>위젯</a>
+          <button class="small-button secondary settings-button" type="button" aria-expanded="false" data-settings-toggle>
+            설정
+          </button>
+        </div>
+        <div class="settings-panel" data-settings-panel hidden>
+          <label class="settings-toggle">
+            <span>알림 진동</span>
+            <input type="checkbox" data-vibration-toggle />
+            <span class="settings-toggle-state" data-vibration-state>켜짐</span>
+          </label>
+        </div>
       </header>
 
       <section class="control-strip flex flex-wrap items-end gap-3 border-y border-neutral-200 bg-white/80 px-3 py-3">
@@ -1254,7 +1409,10 @@
           <div class="panel-heading">
             <div class="panel-title-block">
               <h2 data-panel-title>할 일 목록</h2>
-              <span data-current-time>--:--:--</span>
+              <span class="current-time" data-current-time>
+                <span class="current-date" data-current-date>--</span>
+                <span class="current-clock" data-current-clock>--:--:--</span>
+              </span>
             </div>
             <div class="panel-tabs" role="tablist" aria-label="할 일 보기 전환">
               <button class="panel-tab is-active" type="button" data-panel-view-button="tasks">목록</button>
@@ -1291,6 +1449,7 @@
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
+      const PREFERENCES_STORAGE_KEY = "today-cat-preferences-v1";
 
       function isBlankText(text) {
         return typeof text !== "string" || text.trim().length === 0;
@@ -1313,6 +1472,16 @@
 
       function clamp(value, min, max) {
         return Math.min(Math.max(value, min), max);
+      }
+
+      function getDayStart(timestamp) {
+        const date = new Date(timestamp);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime();
+      }
+
+      function getTaskActiveStart(task) {
+        return Math.max(task.createdAt, getDayStart(task.deadlineAt));
       }
 
       function addTask(tasks, text, deadlineAt, now) {
@@ -1414,13 +1583,14 @@
           return 0;
         }
 
-        const travelDuration = task.deadlineAt - task.createdAt;
+        const activeStart = getTaskActiveStart(task);
+        const travelDuration = task.deadlineAt - activeStart;
 
         if (travelDuration <= 0) {
           return 0;
         }
 
-        return clamp((now - task.createdAt) / travelDuration, 0, 1);
+        return clamp((now - activeStart) / travelDuration, 0, 1);
       }
 
       function canPetCat(task, now) {
@@ -1531,12 +1701,12 @@
         }).format(timestamp);
       }
 
-      function formatClockWithDate(timestamp) {
+      function formatClockDate(timestamp) {
         const date = new Date(timestamp);
         const month = date.getMonth() + 1;
         const day = date.getDate();
-        const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
-        return `${month}월 ${day}일 (${weekday}) ${formatClock(timestamp)}`;
+        const weekday = ["\uC77C", "\uC6D4", "\uD654", "\uC218", "\uBAA9", "\uAE08", "\uD1A0"][date.getDay()];
+        return `${month}\uC6D4 ${day}\uC77C (${weekday})`;
       }
 
       function formatDateInputValue(timestamp) {
@@ -1649,12 +1819,19 @@
         const calendarNext = document.querySelector("[data-calendar-next]");
         const emptyPark = document.querySelector("[data-empty-park]");
         const currentTime = document.querySelector("[data-current-time]");
+        const currentDate = document.querySelector("[data-current-date]");
+        const currentClock = document.querySelector("[data-current-clock]");
         const catStage = document.querySelector("[data-cat-stage]");
         const pettedOverlay = document.querySelector("[data-petted-overlay]");
         const pettedCat = document.querySelector("[data-petted-cat]");
         const pettingHand = document.querySelector("[data-petting-hand]");
         const statActive = document.querySelector("[data-stat-active]");
         const statCompleted = document.querySelector("[data-stat-completed]");
+        const widgetLink = document.querySelector("[data-widget-link]");
+        const settingsToggle = document.querySelector("[data-settings-toggle]");
+        const settingsPanel = document.querySelector("[data-settings-panel]");
+        const vibrationToggle = document.querySelector("[data-vibration-toggle]");
+        const vibrationState = document.querySelector("[data-vibration-state]");
         const quickAddToggle = document.querySelector("[data-quick-add-toggle]");
         const quickAddPanel = document.querySelector("[data-quick-add-panel]");
         const quickAddList = document.querySelector("[data-quick-add-list]");
@@ -1664,9 +1841,11 @@
           !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
           panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
           !calendarGrid || !calendarPrev || !calendarNext || !emptyPark ||
-          !currentTime || !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
-          !statActive || !statCompleted || !quickAddToggle || !quickAddPanel ||
-          !quickAddList || !quickAddSubmit
+          !currentTime || !currentDate || !currentClock ||
+          !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
+          !statActive || !statCompleted || !widgetLink || !settingsToggle ||
+          !settingsPanel || !vibrationToggle || !vibrationState ||
+          !quickAddToggle || !quickAddPanel || !quickAddList || !quickAddSubmit
         ) {
           return;
         }
@@ -1683,6 +1862,7 @@
         let dailyRecords = loadDailyRecords();
         let tasks = loadStoredTasks();
         let taskHistory = loadTaskHistory(tasks);
+        let preferences = loadPreferences();
         let lastSavedTasksText = "";
         let lastSavedRecordsText = "";
 
@@ -1703,6 +1883,11 @@
         let lockedScrollY = 0;
         const remindedTaskKeys = new Set();
 
+        const widgetUrl = new URL(window.location.href);
+        widgetUrl.searchParams.set("widget", "1");
+        widgetUrl.hash = "";
+        widgetLink.href = widgetUrl.toString();
+
         function readStoredJson(key, fallback) {
           try {
             const savedValue = localStorage.getItem(key);
@@ -1716,6 +1901,25 @@
           try {
             localStorage.setItem(key, JSON.stringify(value));
           } catch (_) {}
+        }
+
+        function normalizePreferences(value) {
+          return {
+            reminderVibration: value?.reminderVibration !== false,
+          };
+        }
+
+        function loadPreferences() {
+          return normalizePreferences(readStoredJson(PREFERENCES_STORAGE_KEY, {}));
+        }
+
+        function savePreferences() {
+          writeStoredJson(PREFERENCES_STORAGE_KEY, preferences);
+        }
+
+        function renderSettings() {
+          vibrationToggle.checked = preferences.reminderVibration;
+          vibrationState.textContent = preferences.reminderVibration ? "켜짐" : "꺼짐";
         }
 
         function loadStoredTasks() {
@@ -1849,6 +2053,15 @@
           return `${year}-${month}-${day}`;
         }
 
+        function getTaskDayKey(task) {
+          return getDayKey(task.deadlineAt);
+        }
+
+        function getTasksForDay(dayTimestamp) {
+          const dayKey = getDayKey(dayTimestamp);
+          return tasks.filter((task) => getTaskDayKey(task) === dayKey);
+        }
+
         function buildDailyRecordFromTasks(dayTasks) {
           const stats = calculateStats(dayTasks);
 
@@ -1862,9 +2075,7 @@
         }
 
         function calculateTodayStats(statsNow) {
-          const todayKey = getDayKey(statsNow);
-          const todayTasks = tasks.filter((task) => getDayKey(task.createdAt) === todayKey);
-          return buildDailyRecordFromTasks(todayTasks);
+          return buildDailyRecordFromTasks(getTasksForDay(statsNow));
         }
 
         function saveDailyRecord(recordNow) {
@@ -1884,9 +2095,9 @@
           const pastTasksByDay = new Map();
 
           tasks.forEach((task) => {
-            const taskDayKey = getDayKey(task.createdAt);
+            const taskDayKey = getTaskDayKey(task);
 
-            if (taskDayKey === todayKey) {
+            if (taskDayKey >= todayKey) {
               currentTasks.push(task);
               return;
             }
@@ -2151,11 +2362,17 @@
           }
 
           try {
-            new Notification("HELLO EOMJI", {
+            const notificationOptions = {
               body: `${task.text} 마감시간이 10분 남았어요.`,
               tag: `today-cat-${task.id}-${task.deadlineAt}`,
               renotify: true,
-            });
+            };
+
+            if (preferences.reminderVibration) {
+              notificationOptions.vibrate = [120, 60, 120];
+            }
+
+            new Notification("HELLO EOMJI", notificationOptions);
           } catch (_) {}
         }
 
@@ -2165,13 +2382,13 @@
           setMessage(reminderText);
           sendBrowserReminder(task);
 
-          if (navigator.vibrate) {
+          if (preferences.reminderVibration && navigator.vibrate) {
             navigator.vibrate([120, 60, 120]);
           }
         }
 
-        function notifyUpcomingDeadlines(reminderNow) {
-          tasks.forEach((task) => {
+        function notifyUpcomingDeadlines(reminderNow, reminderTasks = getTasksForDay(reminderNow)) {
+          reminderTasks.forEach((task) => {
             const remainingMs = task.deadlineAt - reminderNow;
             const reminderKey = getReminderKey(task);
 
@@ -2302,7 +2519,8 @@
         }
 
         function renderTasks() {
-          const taskIds = new Set(tasks.map((task) => task.id));
+          const visibleTasks = getTasksForDay(now);
+          const taskIds = new Set(visibleTasks.map((task) => task.id));
           const existingItems = new Map(
             [...taskList.children].map((item) => [item.dataset.taskId, item]),
           );
@@ -2313,7 +2531,7 @@
             }
           });
 
-          tasks.forEach((task, index) => {
+          visibleTasks.forEach((task, index) => {
             const item = existingItems.get(task.id) ?? createTaskItem(task);
             const currentItem = taskList.children[index];
 
@@ -2324,14 +2542,14 @@
             }
           });
 
-          emptyPark.hidden = tasks.length > 0;
+          emptyPark.hidden = visibleTasks.length > 0;
         }
 
         function getQuickAddOptions() {
           const todayKey = getDayKey(Date.now());
           const todayTaskTexts = new Set(
             tasks
-              .filter((task) => getDayKey(task.createdAt) === todayKey)
+              .filter((task) => getTaskDayKey(task) === todayKey)
               .map((task) => normalizeTaskText(task.text)),
           );
 
@@ -2501,10 +2719,12 @@
           tasks = failOverdueTasks(tasks, now);
           tasks = hideExpiredFailedCats(tasks, now);
           const archivedPastTasks = archivePastTasks(now);
+          const todayTasks = getTasksForDay(now);
           saveTasks();
           saveDailyRecord(now);
-          notifyUpcomingDeadlines(now);
-          currentTime.textContent = formatClockWithDate(now);
+          notifyUpcomingDeadlines(now, todayTasks);
+          currentDate.textContent = formatClockDate(now);
+          currentClock.textContent = formatClock(now);
           const todayDate = formatDateInputValue(now);
           dateInput.min = todayDate;
           if (!dateInput.value || dateInput.value < todayDate) {
@@ -2516,7 +2736,7 @@
           if (archivedPastTasks && !quickAddPanel.hidden) {
             renderQuickAdd();
           }
-          catScene.update(tasks, now, pendingPetTaskId);
+          catScene.update(todayTasks, now, pendingPetTaskId);
         }
 
         function tryPetCat(taskId) {
@@ -2551,6 +2771,21 @@
         calendarNext.addEventListener("click", () => {
           calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
           render();
+        });
+
+        settingsToggle.addEventListener("click", () => {
+          const willOpen = settingsPanel.hidden;
+          settingsPanel.hidden = !willOpen;
+          settingsToggle.setAttribute("aria-expanded", String(willOpen));
+        });
+
+        vibrationToggle.addEventListener("change", () => {
+          preferences = {
+            ...preferences,
+            reminderVibration: vibrationToggle.checked,
+          };
+          savePreferences();
+          renderSettings();
         });
 
         quickAddToggle.addEventListener("click", () => {
@@ -2647,6 +2882,7 @@
         });
 
         setInterval(render, 250);
+        renderSettings();
         renderQuickAdd();
         render();
       }

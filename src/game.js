@@ -23,6 +23,16 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getDayStart(timestamp) {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function getTaskActiveStart(task) {
+  return Math.max(task.createdAt, getDayStart(task.deadlineAt));
+}
+
 export function addTask(tasks, text, deadlineAt, now) {
   if (isBlankText(text) || !isValidFutureDeadline(deadlineAt, now)) {
     return tasks;
@@ -96,13 +106,14 @@ export function calculateCatApproach(task, now, durationMs = APPROACH_DURATION_M
     return 0;
   }
 
-  const travelDuration = task.deadlineAt - task.createdAt;
+  const activeStart = getTaskActiveStart(task);
+  const travelDuration = task.deadlineAt - activeStart;
 
   if (travelDuration <= 0) {
     return 0;
   }
 
-  return clamp((now - task.createdAt) / travelDuration, 0, 1);
+  return clamp((now - activeStart) / travelDuration, 0, 1);
 }
 
 export function canPetCat(task, now, durationMs = APPROACH_DURATION_MS) {

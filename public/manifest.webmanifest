@@ -17,5 +17,19 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "공원 위젯",
+      "short_name": "위젯",
+      "url": "../?widget=1",
+      "icons": [
+        {
+          "src": "./app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
