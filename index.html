@@ -2,7 +2,10 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/png" sizes="16x16" href="./public/app-icon-16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
@@ -25,6 +28,9 @@
         overflow-x: hidden;
         scrollbar-width: none;
         -ms-overflow-style: none;
+        overscroll-behavior: none;
+        touch-action: pan-x pan-y;
+        -webkit-text-size-adjust: 100%;
       }
 
       *::-webkit-scrollbar {
@@ -39,6 +45,9 @@
         box-sizing: border-box;
         scrollbar-width: none;
         -ms-overflow-style: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       body {
@@ -47,6 +56,13 @@
         background-image: none;
         color: rgb(23 23 23);
         font-family: Gulim, "굴림", Dotum, "돋움", "Apple SD Gothic Neo", sans-serif;
+      }
+
+      img,
+      a,
+      button {
+        -webkit-user-drag: none;
+        user-drag: none;
       }
 
       body.is-petting-locked {
@@ -58,6 +74,12 @@
       button,
       input {
         font: inherit;
+      }
+
+      input {
+        user-select: text;
+        -webkit-user-select: text;
+        -webkit-touch-callout: default;
       }
 
       .app-shell {
@@ -2951,6 +2973,22 @@
         renderQuickAdd();
         render();
       }
+
+      document.addEventListener("dblclick", (event) => {
+        event.preventDefault();
+      }, { passive: false });
+
+      document.addEventListener("touchmove", (event) => {
+        if (event.touches.length > 1) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+        document.addEventListener(eventName, (event) => {
+          event.preventDefault();
+        }, { passive: false });
+      });
 
       document.addEventListener("DOMContentLoaded", initApp);
     </script>
