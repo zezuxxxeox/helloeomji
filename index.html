@@ -1296,10 +1296,24 @@
         display: none;
       }
 
+      .calendar-detail-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
       .calendar-detail-title {
         color: rgb(23 23 23);
         font-size: 14px;
         font-weight: 950;
+      }
+
+      .calendar-share-button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 6px 10px;
       }
 
       .calendar-detail-list {
@@ -1549,7 +1563,10 @@
             </div>
             <div class="calendar-grid" data-calendar-grid></div>
             <div class="calendar-detail" data-calendar-detail>
-              <strong class="calendar-detail-title" data-calendar-detail-title></strong>
+              <div class="calendar-detail-heading">
+                <strong class="calendar-detail-title" data-calendar-detail-title></strong>
+                <button class="small-button reward calendar-share-button" type="button" data-calendar-share>오운완 공유</button>
+              </div>
               <div class="calendar-detail-list" data-calendar-detail-list></div>
             </div>
           </div>
@@ -1959,6 +1976,7 @@
         const calendarDetail = document.querySelector("[data-calendar-detail]");
         const calendarDetailTitle = document.querySelector("[data-calendar-detail-title]");
         const calendarDetailList = document.querySelector("[data-calendar-detail-list]");
+        const calendarShareButton = document.querySelector("[data-calendar-share]");
         const calendarPrev = document.querySelector("[data-calendar-prev]");
         const calendarNext = document.querySelector("[data-calendar-next]");
         const emptyPark = document.querySelector("[data-empty-park]");
@@ -1980,6 +1998,7 @@
           !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
           panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
           !calendarGrid || !calendarDetail || !calendarDetailTitle || !calendarDetailList ||
+          !calendarShareButton ||
           !calendarPrev || !calendarNext || !emptyPark ||
           !currentTime || !currentDate || !currentClock ||
           !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
@@ -3010,6 +3029,200 @@
           render();
         }
 
+        const shareCatImage = new Image();
+        shareCatImage.src = "./public/cat-summary.png";
+
+        function parseDayKeyToDate(dayKey) {
+          const [yearText, monthText, dayText] = dayKey.split("-");
+          return new Date(Number(yearText), Number(monthText) - 1, Number(dayText));
+        }
+
+        function drawRoundedRect(ctx, x, y, w, h, radius) {
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.arcTo(x + w, y, x + w, y + h, radius);
+          ctx.arcTo(x + w, y + h, x, y + h, radius);
+          ctx.arcTo(x, y + h, x, y, radius);
+          ctx.arcTo(x, y, x + w, y, radius);
+          ctx.closePath();
+        }
+
+        function buildShareImageDataUrl(dayKey) {
+          const items = getCalendarTaskItems(dayKey)
+            .slice()
+            .sort((left, right) => {
+              const leftDeadline = Number.isFinite(left.deadlineAt) ? left.deadlineAt : 0;
+              const rightDeadline = Number.isFinite(right.deadlineAt) ? right.deadlineAt : 0;
+              return leftDeadline - rightDeadline || left.text.localeCompare(right.text, "ko-KR");
+            });
+          const record = dailyRecords[dayKey] ?? {};
+          const completedCount = (record.completedCount ?? 0) +
+            items.filter((item) => item.status === "completed" || item.status === "petted").length -
+            items.filter((item) => Number.isFinite(item.completedAt) && (record.completedCount ?? 0) === 0).length;
+          const fontFamily = '"Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", Gulim, "굴림", system-ui, sans-serif';
+
+          const dpr = 2;
+          const W = 1080;
+          const H = 1080;
+          const canvas = document.createElement("canvas");
+          canvas.width = W * dpr;
+          canvas.height = H * dpr;
+          const ctx = canvas.getContext("2d");
+          ctx.scale(dpr, dpr);
+
+          ctx.fillStyle = "#fff7f0";
+          ctx.fillRect(0, 0, W, H);
+
+          drawRoundedRect(ctx, 36, 36, W - 72, H - 72, 36);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.strokeStyle = "#fde7e1";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#dc2626";
+          ctx.font = `900 96px ${fontFamily}`;
+          ctx.fillText("HELLO EOMJI", W / 2, 160);
+
+          const date = parseDayKeyToDate(dayKey);
+          const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+          const dateLine = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${weekday})`;
+          ctx.fillStyle = "#0f172a";
+          ctx.font = `800 44px ${fontFamily}`;
+          ctx.fillText(dateLine, W / 2, 230);
+
+          const doneCount = items.filter((item) => item.status === "petted" || item.status === "completed").length;
+          const failedCount = items.filter((item) => item.status === "failed").length;
+          const tagline = items.length === 0
+            ? "오늘은 잠깐 쉬어가는 중"
+            : doneCount > 0
+              ? `오운완! 완료 ${doneCount}개${failedCount > 0 ? ` · 실패 ${failedCount}개` : ""}`
+              : "기록 중";
+          ctx.fillStyle = "#64748b";
+          ctx.font = `800 30px ${fontFamily}`;
+          ctx.fillText(tagline, W / 2, 282);
+
+          const cardX = 80;
+          const cardWidth = W - 160;
+          const rowHeight = 78;
+          const rowGap = 12;
+          let y = 340;
+          const maxY = H - 260;
+
+          const visibleItems = items.slice();
+
+          if (visibleItems.length === 0) {
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = `700 30px ${fontFamily}`;
+            ctx.textAlign = "center";
+            ctx.fillText("기록된 할 일이 없어요", W / 2, y + 60);
+          }
+
+          visibleItems.forEach((item) => {
+            if (y + rowHeight > maxY) {
+              return;
+            }
+
+            drawRoundedRect(ctx, cardX, y, cardWidth, rowHeight, 18);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            let icon = "•";
+            let iconColor = "#94a3b8";
+            if (item.status === "petted" || item.status === "completed") {
+              icon = "✓";
+              iconColor = "#16a34a";
+            } else if (item.status === "failed") {
+              icon = "✗";
+              iconColor = "#dc2626";
+            }
+
+            ctx.textAlign = "center";
+            ctx.fillStyle = iconColor;
+            ctx.font = `900 36px ${fontFamily}`;
+            ctx.fillText(icon, cardX + 38, y + 50);
+
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#0f172a";
+            ctx.font = `800 26px ${fontFamily}`;
+            const maxTextWidth = cardWidth - 90 - 220;
+            const truncated = truncateForCanvas(ctx, item.text, maxTextWidth);
+            ctx.fillText(truncated, cardX + 70, y + 36);
+
+            ctx.fillStyle = "#64748b";
+            ctx.font = `700 20px ${fontFamily}`;
+            const deadlineText = Number.isFinite(item.deadlineAt) && item.deadlineAt > 0
+              ? `마감 ${formatDeadline(item.deadlineAt)} · ${getCalendarTaskStatusLabel(item)}`
+              : getCalendarTaskStatusLabel(item);
+            ctx.fillText(truncateForCanvas(ctx, deadlineText, maxTextWidth + 200), cardX + 70, y + 62);
+
+            y += rowHeight + rowGap;
+          });
+
+          if (shareCatImage.complete && shareCatImage.naturalWidth > 0) {
+            const kittyHeight = 320;
+            const ratio = shareCatImage.naturalWidth / shareCatImage.naturalHeight;
+            const kittyWidth = kittyHeight * ratio;
+            ctx.drawImage(
+              shareCatImage,
+              W - kittyWidth - 60,
+              H - kittyHeight - 60,
+              kittyWidth,
+              kittyHeight,
+            );
+          }
+
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = `700 22px ${fontFamily}`;
+          ctx.fillText("hello-eomji", 80, H - 90);
+
+          return canvas.toDataURL("image/png");
+        }
+
+        function truncateForCanvas(ctx, text, maxWidth) {
+          if (ctx.measureText(text).width <= maxWidth) {
+            return text;
+          }
+          const ellipsis = "…";
+          let result = text;
+          while (result.length > 1 && ctx.measureText(result + ellipsis).width > maxWidth) {
+            result = result.slice(0, -1);
+          }
+          return result + ellipsis;
+        }
+
+        function downloadShareImage() {
+          const run = () => {
+            try {
+              const dataUrl = buildShareImageDataUrl(selectedCalendarDayKey);
+              const link = document.createElement("a");
+              link.href = dataUrl;
+              link.download = `hello-eomji-${selectedCalendarDayKey}.png`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              setMessage("오운완 이미지를 저장했어요");
+            } catch (error) {
+              setMessage("이미지 저장에 실패했어요");
+            }
+          };
+
+          if (shareCatImage.complete && shareCatImage.naturalWidth > 0) {
+            run();
+            return;
+          }
+
+          shareCatImage.addEventListener("load", run, { once: true });
+          shareCatImage.addEventListener("error", () => {
+            setMessage("이미지 저장에 실패했어요");
+          }, { once: true });
+        }
+
         function addToTodayFromCalendar(item) {
           const submittedAt = Date.now();
           const todayDateValue = formatDateInputValue(submittedAt);
@@ -3249,6 +3462,10 @@
         calendarNext.addEventListener("click", () => {
           calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
           render();
+        });
+
+        calendarShareButton.addEventListener("click", () => {
+          downloadShareImage();
         });
 
         quickAddToggle.addEventListener("click", () => {
