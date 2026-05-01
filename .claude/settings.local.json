@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:/Users/lab4dx/Desktop/helloeomji\" push -u -f origin main)",
+      "Bash(git -C \"c:/Users/lab4dx/Desktop/helloeomji\" push -f origin main)",
+      "Bash(git -C \"c:/Users/lab4dx/Desktop/helloeomji\" add index.html)",
+      "Bash(git -C c:/Users/lab4dx/Desktop/helloeomji commit -m ' *)",
+      "Bash(git -C \"c:/Users/lab4dx/Desktop/helloeomji\" push origin main)",
+      "Bash(python -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}
