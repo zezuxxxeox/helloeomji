@@ -3181,8 +3181,9 @@
             const kittyHeight = 529;
             const ratio = shareCatImage.naturalWidth / shareCatImage.naturalHeight;
             const kittyWidth = kittyHeight * ratio;
-            const kittyX = W - kittyWidth - 78 + kittyWidth * 0.05;
-            const kittyY = H - kittyHeight - 72 + kittyHeight * 0.1;
+            const kittyInset = 16;
+            const kittyX = W - 44 - kittyInset - kittyWidth;
+            const kittyY = H - 44 - kittyInset - kittyHeight;
             ctx.drawImage(
               shareCatImage,
               kittyX,
