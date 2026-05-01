@@ -150,7 +150,7 @@ export function calculateCatPerspective(task, now, durationMs = APPROACH_DURATIO
   if (task.status === "failed") {
     return {
       approachRatio,
-      scale: 0.28,
+      scale: 0.42,
       translateY: -42,
       opacity: 0.34,
       zIndex: 5,
