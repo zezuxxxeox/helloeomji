@@ -1098,11 +1098,27 @@
       }
 
       .calendar-count {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 4px;
         color: rgb(71 85 105);
         font-size: 10px;
         font-weight: 850;
         line-height: 1.25;
+      }
+
+      .calendar-count-icon {
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .calendar-count--done .calendar-count-icon {
+        color: rgb(22 163 74);
+      }
+
+      .calendar-count--failed .calendar-count-icon {
+        color: rgb(220 38 38);
       }
 
       .task-item {
@@ -1183,7 +1199,7 @@
         </div>
         <dl class="stats-grid grid grid-cols-2 gap-2" data-stats>
           <div class="stat-item">
-            <dt>활성</dt>
+            <dt>목표</dt>
             <dd data-stat-active>0</dd>
           </div>
           <div class="stat-item">
@@ -1227,10 +1243,10 @@
 
       <section class="workbench grid flex-1 grid-cols-[1fr_340px] gap-4">
         <div class="park-stage" data-park-stage>
-          <div class="cat-stage" data-cat-stage aria-label="공원 산책로 위 고양이"></div>
+          <div class="cat-stage" data-cat-stage aria-label="공원 산책로 위 헬로키티"></div>
           <div class="empty-park" data-empty-park>
-            <strong>공원에 아직 고양이가 없어요.</strong>
-            <span>할 일을 추가하고 고양이를 만나보세요.</span>
+            <strong>공원에 아직 헬로키티가 없어요.</strong>
+            <span>할 일을 추가하고 헬로키티를 만나보세요.</span>
           </div>
         </div>
 
@@ -1528,7 +1544,7 @@
           sprite.className = "cat-sprite";
           sprite.textContent = "";
           sprite.dataset.taskId = task.id;
-          sprite.setAttribute("aria-label", `${task.text} 고양이`);
+          sprite.setAttribute("aria-label", `${task.text} 헬로키티`);
           sprite.addEventListener("click", () => onCatClick(task.id));
           catStage.appendChild(sprite);
           sprites.set(task.id, sprite);
@@ -2002,7 +2018,7 @@
           emitHeart();
           if (taskId) {
             tasks = petCat(tasks, taskId, Date.now());
-            setMessage("쓰다듬 완료. 고양이가 만족했어요.");
+            setMessage("쓰다듬 완료. 헬로키티가 만족했어요.");
             render();
           }
           setTimeout(() => {
@@ -2315,10 +2331,16 @@
           });
         }
 
-        function createCalendarCount(label, count) {
+        function createCalendarCount(icon, variant, count) {
           const item = document.createElement("span");
-          item.className = "calendar-count";
-          item.textContent = `${label} ${count}`;
+          item.className = `calendar-count calendar-count--${variant}`;
+          const iconEl = document.createElement("span");
+          iconEl.className = "calendar-count-icon";
+          iconEl.textContent = icon;
+          const countEl = document.createElement("span");
+          countEl.className = "calendar-count-value";
+          countEl.textContent = String(count);
+          item.append(iconEl, countEl);
           return item;
         }
 
@@ -2353,8 +2375,8 @@
             dayNumber.textContent = String(day);
             dayCell.append(
               dayNumber,
-              createCalendarCount("활", record.activeCount ?? 0),
-              createCalendarCount("완", record.completedCount ?? 0),
+              createCalendarCount("✓", "done", record.completedCount ?? 0),
+              createCalendarCount("✗", "failed", record.returnedCatCount ?? 0),
             );
             calendarGrid.appendChild(dayCell);
           }
@@ -2421,7 +2443,7 @@
             return;
           }
 
-          setMessage("고양이 등을 쓰다듬어 주세요.");
+          setMessage("헬로키티 등을 쓰다듬어 주세요.");
           showPettedCat(taskId);
           render();
         }

@@ -90,7 +90,7 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(tasks[0].status).toBe("active");
   });
 
-  it("마감 후 완료는 고양이 보상을 발생시키지 않는다", () => {
+  it("마감 후 완료는 헬로키티 보상을 발생시키지 않는다", () => {
     const tasks = [activeTask({ deadlineAt: past })];
 
     expect(completeTask(tasks, "task-1", now)).toBe(tasks);
@@ -113,7 +113,7 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(tasks[0].failedAt).toBe(past);
   });
 
-  it("활성 고양이는 마감 시간에 맞춰 계속 다가온다", () => {
+  it("활성 헬로키티는 마감 시간에 맞춰 계속 다가온다", () => {
     const task = activeTask({ deadlineAt: shortDeadline });
 
     expect(calculateCatApproach(task, now + 3_000)).toBe(0.5);
@@ -128,13 +128,13 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(calculateCatApproach(completedTasks[0], completedAt)).toBeCloseTo(1 / 3);
   });
 
-  it("실패한 고양이는 쓰다듬을 수 없다", () => {
+  it("실패한 헬로키티는 쓰다듬을 수 없다", () => {
     const task = activeTask({ status: "failed", failedAt: now });
 
     expect(canPetCat(task, shortDeadline, approachDuration)).toBe(false);
   });
 
-  it("완료된 고양이가 마감 시간에 도착하면 쓰다듬을 수 있다", () => {
+  it("완료된 헬로키티가 마감 시간에 도착하면 쓰다듬을 수 있다", () => {
     const task = activeTask({ status: "completed", deadlineAt: shortDeadline, completedAt: now + 1_000 });
 
     expect(canPetCat(task, shortDeadline, approachDuration)).toBe(true);
@@ -149,7 +149,7 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(tasks[0].status).toBe("completed");
   });
 
-  it("이미 쓰다듬은 고양이는 중복 쓰다듬기 처리되지 않는다", () => {
+  it("이미 쓰다듬은 헬로키티는 중복 쓰다듬기 처리되지 않는다", () => {
     const tasks = [activeTask({ status: "petted", completedAt: now, pettedAt: now + approachDuration })];
 
     expect(petCat(tasks, "task-1", now + approachDuration * 2, approachDuration)).toBe(tasks);
@@ -163,7 +163,7 @@ describe("데드라인 헌터 순수 함수", () => {
     expect(tasks).toHaveLength(2);
   });
 
-  it("고양이 원근감 표현 값을 계산한다", () => {
+  it("헬로키티 원근감 표현 값을 계산한다", () => {
     const task = activeTask({ status: "completed", deadlineAt: shortDeadline, completedAt: now + 1_000 });
     const perspective = calculateCatPerspective(task, now + 4_500, approachDuration);
 
