@@ -3164,7 +3164,7 @@
 
           const cardX = 84;
           const cardWidth = W - 168;
-          const taskAreaTop = 398;
+          const taskAreaTop = 374;
           const taskAreaBottom = H - 44 - 9;
           const taskAreaHeight = taskAreaBottom - taskAreaTop;
           const minRowHeight = 46;
@@ -3188,8 +3188,7 @@
           const iconFontSize = Math.round(clamp(rowHeight * 0.45, 24, 44));
           const taskFontSize = Math.round(clamp(rowHeight * 0.34, 20, 34));
           const metaFontSize = Math.round(clamp(rowHeight * 0.24, 15, 24));
-          const listHeight = rowHeight * layoutCount + rowGap * (layoutCount - 1);
-          let y = taskAreaTop + Math.min(72, Math.max(0, (taskAreaHeight - listHeight) * 0.12));
+          let y = taskAreaTop;
 
           if (visibleItems.length === 0) {
             ctx.fillStyle = "#94a3b8";
