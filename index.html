@@ -1395,6 +1395,34 @@
         overflow-wrap: break-word;
       }
 
+      .task-meta-time {
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        padding: 1px 4px;
+        cursor: pointer;
+      }
+
+      .task-meta-time:hover:not(:disabled),
+      .task-meta-time:focus {
+        border-color: rgb(203 213 225);
+        background: rgb(248 250 252);
+        outline: none;
+      }
+
+      .task-meta-time:disabled {
+        cursor: default;
+        color: rgb(82 82 82);
+        opacity: 0.7;
+      }
+
+      .task-meta-time::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.55;
+      }
+
       .task-actions {
         display: flex;
         flex-wrap: wrap;
@@ -2682,6 +2710,23 @@
           meta.className = "task-meta";
           meta.dataset.taskMeta = "";
 
+          const metaPrefix = document.createElement("span");
+          metaPrefix.textContent = "마감 ";
+
+          const timeInput = document.createElement("input");
+          timeInput.type = "time";
+          timeInput.className = "task-meta-time";
+          timeInput.dataset.taskTimeInput = "";
+          timeInput.setAttribute("aria-label", `${task.text} 마감 시간 변경`);
+          timeInput.addEventListener("change", () => {
+            updateTaskDeadline(task.id, timeInput.value);
+          });
+
+          const metaSuffix = document.createElement("span");
+          metaSuffix.dataset.taskMetaSuffix = "";
+
+          meta.append(metaPrefix, timeInput, metaSuffix);
+
           const progressTrack = document.createElement("div");
           progressTrack.className = "progress-track";
 
@@ -2712,8 +2757,8 @@
               const rescueNow = Date.now();
               const targetTask = tasks.find((currentTask) => currentTask.id === task.id);
 
-              if (!canRescueLateTask(targetTask, rescueNow, reason)) {
-                setMessage(`${label}는 오늘 2번까지 가능해요`);
+              if (!canRescueLateTask(targetTask)) {
+                setMessage(`${label}는 지금 사용할 수 없어요`);
                 render();
                 return;
               }
@@ -2763,7 +2808,8 @@
         function updateTaskItem(item, task) {
           const title = item.querySelector("[data-task-title]");
           const badge = item.querySelector("[data-task-badge]");
-          const meta = item.querySelector("[data-task-meta]");
+          const timeInput = item.querySelector("[data-task-time-input]");
+          const metaSuffix = item.querySelector("[data-task-meta-suffix]");
           const progress = item.querySelector("[data-task-progress]");
           const completeButton = item.querySelector("[data-complete-button]");
           const rescueButtons = [...item.querySelectorAll("[data-rescue-button]")];
@@ -2772,7 +2818,14 @@
 
           title.textContent = task.text;
           badge.textContent = getTaskMessage(task);
-          meta.textContent = `마감 ${formatDeadline(task.deadlineAt)} · 접근률 ${approachPercent}%`;
+
+          const desiredTimeValue = formatDeadlineTimeInput(task.deadlineAt);
+          if (document.activeElement !== timeInput && timeInput.value !== desiredTimeValue) {
+            timeInput.value = desiredTimeValue;
+          }
+          timeInput.disabled = task.status !== "active";
+
+          metaSuffix.textContent = ` · 접근률 ${approachPercent}%`;
           progress.style.width = `${approachPercent}%`;
           completeButton.disabled = task.status !== "active";
           rescueButtons.forEach((button) => {
@@ -2917,6 +2970,38 @@
           countEl.textContent = String(count);
           item.append(iconEl, countEl);
           return item;
+        }
+
+        function updateTaskDeadline(taskId, newTimeValue) {
+          if (!newTimeValue) {
+            return;
+          }
+
+          const target = tasks.find((task) => task.id === taskId);
+
+          if (!target || target.status !== "active") {
+            return;
+          }
+
+          const submittedAt = Date.now();
+          const dateValue = formatDateInputValue(target.deadlineAt);
+          const newDeadline = parseDeadline(dateValue, newTimeValue, submittedAt);
+
+          if (!isValidFutureDeadline(newDeadline, submittedAt)) {
+            setMessage("현재 시각보다 늦은 마감 시간을 입력해 주세요");
+            render();
+            return;
+          }
+
+          if (newDeadline === target.deadlineAt) {
+            return;
+          }
+
+          tasks = tasks.map((task) =>
+            task.id === taskId ? { ...task, deadlineAt: newDeadline } : task,
+          );
+          setMessage("마감 시간을 변경했어요");
+          render();
         }
 
         function addToTodayFromCalendar(item) {
