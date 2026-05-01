@@ -2628,7 +2628,13 @@
               .map((task) => normalizeTaskText(task.text)),
           );
 
-          return taskHistory.filter((item) => !todayTaskTexts.has(item.text));
+          return taskHistory
+            .filter((item) => !todayTaskTexts.has(item.text))
+            .sort((left, right) => (
+              (right.useCount ?? 0) - (left.useCount ?? 0) ||
+              (right.lastUsedAt ?? 0) - (left.lastUsedAt ?? 0)
+            ))
+            .slice(0, 5);
         }
 
         function renderQuickAdd() {
