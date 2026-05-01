@@ -1223,6 +1223,10 @@
             />
           </div>
           <div class="field-group w-40">
+            <label for="task-date">날짜</label>
+            <input id="task-date" type="date" name="date" data-date-input />
+          </div>
+          <div class="field-group w-40">
             <label for="task-deadline">마감 시간</label>
             <input id="task-deadline" type="time" name="deadline" data-deadline-input />
           </div>
@@ -1489,12 +1493,12 @@
         );
       }
 
-      function parseDeadlineTime(value, now) {
-        if (!value) {
+      function parseDeadline(dateValue, timeValue, fallbackNow) {
+        if (!timeValue) {
           return Number.NaN;
         }
 
-        const [hourText, minuteText] = value.split(":");
+        const [hourText, minuteText] = timeValue.split(":");
         const hour = Number(hourText);
         const minute = Number(minuteText);
 
@@ -1502,8 +1506,22 @@
           return Number.NaN;
         }
 
-        const deadline = new Date(now);
-        deadline.setHours(hour, minute, 0, 0);
+        let deadline;
+        if (dateValue) {
+          const [yearText, monthText, dayText] = dateValue.split("-");
+          const year = Number(yearText);
+          const month = Number(monthText);
+          const day = Number(dayText);
+
+          if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+            return Number.NaN;
+          }
+
+          deadline = new Date(year, month - 1, day, hour, minute, 0, 0);
+        } else {
+          deadline = new Date(fallbackNow);
+          deadline.setHours(hour, minute, 0, 0);
+        }
 
         return deadline.getTime();
       }
@@ -1515,6 +1533,22 @@
           second: "2-digit",
           hour12: false,
         }).format(timestamp);
+      }
+
+      function formatClockWithDate(timestamp) {
+        const date = new Date(timestamp);
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+        return `${month}월 ${day}일 (${weekday}) ${formatClock(timestamp)}`;
+      }
+
+      function formatDateInputValue(timestamp) {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
       }
 
       function formatDeadline(timestamp) {
@@ -1607,6 +1641,7 @@
         const form = document.querySelector("[data-task-form]");
         const taskInput = document.querySelector("[data-task-input]");
         const deadlineInput = document.querySelector("[data-deadline-input]");
+        const dateInput = document.querySelector("[data-date-input]");
         const message = document.querySelector("[data-message]");
         const panelTitle = document.querySelector("[data-panel-title]");
         const panelViewButtons = [...document.querySelectorAll("[data-panel-view-button]")];
@@ -1630,7 +1665,7 @@
         const quickAddSubmit = document.querySelector("[data-quick-add-submit]");
 
         if (
-          !form || !taskInput || !deadlineInput || !message || !panelTitle ||
+          !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
           panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
           !calendarGrid || !calendarPrev || !calendarNext || !emptyPark ||
           !currentTime || !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
@@ -1639,6 +1674,12 @@
         ) {
           return;
         }
+
+        const todayDateValue = formatDateInputValue(Date.now());
+        if (!dateInput.value) {
+          dateInput.value = todayDateValue;
+        }
+        dateInput.min = todayDateValue;
 
         let now = Date.now();
         let activePanelView = "tasks";
@@ -2421,7 +2462,8 @@
           saveTasks();
           saveDailyRecord(now);
           notifyUpcomingDeadlines(now);
-          currentTime.textContent = formatClock(now);
+          currentTime.textContent = formatClockWithDate(now);
+          dateInput.min = formatDateInputValue(now);
           renderStats();
           renderTasks();
           renderPanelView();
@@ -2497,6 +2539,12 @@
             return;
           }
 
+          if (!dateInput.value) {
+            setMessage("날짜를 선택해 주세요");
+            dateInput.focus();
+            return;
+          }
+
           if (!deadlineInput.value) {
             setMessage("마감 시간을 입력해 주세요");
             deadlineInput.focus();
@@ -2504,7 +2552,7 @@
           }
 
           const submittedAt = Date.now();
-          const deadlineAt = parseDeadlineTime(deadlineInput.value, submittedAt);
+          const deadlineAt = parseDeadline(dateInput.value, deadlineInput.value, submittedAt);
 
           if (!isValidFutureDeadline(deadlineAt, submittedAt)) {
             setMessage("현재 시각보다 늦은 마감 시간을 입력해 주세요");
@@ -2527,12 +2575,18 @@
           event.preventDefault();
 
           const submittedAt = Date.now();
-          const deadlineAt = parseDeadlineTime(deadlineInput.value, submittedAt);
+          const deadlineAt = parseDeadline(dateInput.value, deadlineInput.value, submittedAt);
           const nextTasks = addTask(tasks, taskInput.value, deadlineAt, submittedAt);
 
           if (taskInput.value.trim().length === 0) {
             setMessage("할 일을 입력해 주세요");
             taskInput.focus();
+            return;
+          }
+
+          if (!dateInput.value) {
+            setMessage("날짜를 선택해 주세요");
+            dateInput.focus();
             return;
           }
 
