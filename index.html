@@ -70,6 +70,35 @@
         text-shadow: none;
       }
 
+      .title-block {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .app-shell h1.title-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        padding: 0;
+        line-height: 0;
+      }
+
+      .app-shell h1.title-logo img {
+        display: block;
+        height: clamp(38px, 5vw, 56px);
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+      }
+
+      @media (max-width: 520px) {
+        .app-shell h1.title-logo img {
+          height: clamp(32px, 9vw, 44px);
+        }
+      }
+
       .stats-grid {
         width: min(100%, 228px);
         min-width: 0;
@@ -1144,9 +1173,11 @@
     </div>
 
     <main class="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-5 py-5">
-      <header class="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 class="text-3xl font-black tracking-normal">HELLO EOMJI</h1>
+      <header class="flex flex-wrap items-center justify-between gap-3">
+        <div class="title-block">
+          <h1 class="title-logo">
+            <img src="./public/title-logo.png" alt="HELLO EOMJI" />
+          </h1>
         </div>
         <dl class="stats-grid grid grid-cols-2 gap-2" data-stats>
           <div class="stat-item">
@@ -1476,6 +1507,16 @@
         }).format(timestamp);
       }
 
+      function formatDeadlineTimeInput(timestamp) {
+        if (!Number.isFinite(timestamp)) {
+          return "";
+        }
+        const date = new Date(timestamp);
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mm = String(date.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      }
+
       function createCatScene({ catStage, onCatClick }) {
         const sprites = new Map();
 
@@ -1660,6 +1701,7 @@
                 text,
                 lastUsedAt: Number.isFinite(item?.lastUsedAt) ? item.lastUsedAt : 0,
                 useCount: Number.isFinite(item?.useCount) ? item.useCount : 1,
+                deadlineTime: typeof item?.deadlineTime === "string" ? item.deadlineTime : "",
               });
             });
           }
@@ -1672,10 +1714,14 @@
             }
 
             const savedItem = historyMap.get(text);
+            const taskCreatedAt = task.createdAt ?? 0;
+            const taskTime = formatDeadlineTimeInput(task.deadlineAt);
+            const taskIsNewer = taskCreatedAt >= (savedItem?.lastUsedAt ?? 0);
             historyMap.set(text, {
               text,
-              lastUsedAt: Math.max(savedItem?.lastUsedAt ?? 0, task.createdAt ?? 0),
+              lastUsedAt: Math.max(savedItem?.lastUsedAt ?? 0, taskCreatedAt),
               useCount: Math.max(savedItem?.useCount ?? 1, 1),
+              deadlineTime: taskIsNewer ? taskTime : (savedItem?.deadlineTime || taskTime),
             });
           });
 
@@ -1688,7 +1734,7 @@
           writeStoredJson(TASK_HISTORY_STORAGE_KEY, taskHistory);
         }
 
-        function rememberTaskText(text, usedAt) {
+        function rememberTaskText(text, usedAt, deadlineTime) {
           const normalizedText = normalizeTaskText(text);
 
           if (!normalizedText) {
@@ -1696,10 +1742,15 @@
           }
 
           const existingItem = taskHistory.find((item) => item.text === normalizedText);
+          const nextDeadlineTime =
+            typeof deadlineTime === "string" && deadlineTime
+              ? deadlineTime
+              : (existingItem?.deadlineTime ?? "");
           const nextItem = {
             text: normalizedText,
             lastUsedAt: usedAt,
             useCount: (existingItem?.useCount ?? 0) + 1,
+            deadlineTime: nextDeadlineTime,
           };
 
           taskHistory = [
@@ -2251,6 +2302,9 @@
             checkbox.type = "checkbox";
             checkbox.value = item.text;
             checkbox.dataset.quickAddCheckbox = "";
+            if (item.deadlineTime) {
+              checkbox.dataset.deadlineTime = item.deadlineTime;
+            }
             checkbox.checked = checkedTexts.has(item.text);
             text.textContent = item.text;
 
@@ -2395,6 +2449,21 @@
           }
         });
 
+        quickAddList.addEventListener("change", (event) => {
+          const target = event.target;
+          if (
+            !(target instanceof HTMLInputElement) ||
+            !("quickAddCheckbox" in target.dataset) ||
+            !target.checked
+          ) {
+            return;
+          }
+          const savedTime = target.dataset.deadlineTime;
+          if (savedTime) {
+            deadlineInput.value = savedTime;
+          }
+        });
+
         quickAddSubmit.addEventListener("click", () => {
           const selectedTexts = [...quickAddList.querySelectorAll("[data-quick-add-checkbox]:checked")]
             .map((checkbox) => checkbox.value);
@@ -2421,7 +2490,7 @@
 
           selectedTexts.forEach((text) => {
             tasks = addTask(tasks, text, deadlineAt, submittedAt);
-            rememberTaskText(text, submittedAt);
+            rememberTaskText(text, submittedAt, deadlineInput.value);
           });
 
           requestReminderPermission().catch(() => {});
@@ -2457,7 +2526,7 @@
 
           requestReminderPermission().catch(() => {});
           tasks = nextTasks;
-          rememberTaskText(taskInput.value, submittedAt);
+          rememberTaskText(taskInput.value, submittedAt, deadlineInput.value);
           taskInput.value = "";
           setMessage("");
           renderQuickAdd();
