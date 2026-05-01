@@ -1284,7 +1284,7 @@
       }
 
       .calendar-count--done .calendar-count-icon {
-        color: var(--title-red);
+        color: #16a34a;
       }
 
       .calendar-count--failed .calendar-count-icon {
@@ -2624,15 +2624,19 @@
           event.preventDefault();
         }, { passive: false });
 
-        function setMessage(text) {
-          message.textContent = text;
-        }
+        let messageTimer = 0;
 
-        document.addEventListener("pointerdown", () => {
-          if (message.textContent) {
-            setMessage("");
+        function setMessage(text) {
+          window.clearTimeout(messageTimer);
+          message.textContent = text;
+
+          if (text) {
+            messageTimer = window.setTimeout(() => {
+              message.textContent = "";
+              messageTimer = 0;
+            }, 3000);
           }
-        }, { passive: true });
+        }
 
         function getReminderKey(task) {
           return `${task.id}:${task.createdAt}:${task.deadlineAt}`;
@@ -3119,26 +3123,46 @@
 
           const cardX = 84;
           const cardWidth = W - 168;
-          const rowHeight = 88;
-          const rowGap = 14;
-          let y = 398;
-          const maxY = H - 610;
-
-          const visibleItems = items.slice();
+          const taskAreaTop = 398;
+          const taskAreaBottom = H - 44 - 9;
+          const taskAreaHeight = taskAreaBottom - taskAreaTop;
+          const minRowHeight = 46;
+          const minRowGap = 6;
+          const maxVisibleRows = Math.max(
+            1,
+            Math.floor((taskAreaHeight + minRowGap) / (minRowHeight + minRowGap)),
+          );
+          const hasOverflow = items.length > maxVisibleRows;
+          const visibleItems = hasOverflow ? items.slice(0, maxVisibleRows - 1) : items.slice();
+          const overflowCount = hasOverflow ? items.length - visibleItems.length : 0;
+          const layoutCount = Math.max(1, visibleItems.length + (hasOverflow ? 1 : 0));
+          const rowGap = Math.round(clamp(18 - layoutCount * 0.45, minRowGap, 16));
+          const maxRowHeight = layoutCount === 1 ? 260 : layoutCount === 2 ? 220 : layoutCount <= 5 ? 170 : 150;
+          const rowHeight = Math.floor(clamp(
+            (taskAreaHeight - rowGap * (layoutCount - 1)) / layoutCount,
+            minRowHeight,
+            maxRowHeight,
+          ));
+          const rowRadius = clamp(rowHeight * 0.22, 10, 22);
+          const iconFontSize = Math.round(clamp(rowHeight * 0.45, 24, 44));
+          const taskFontSize = Math.round(clamp(rowHeight * 0.34, 20, 34));
+          const metaFontSize = Math.round(clamp(rowHeight * 0.24, 15, 24));
+          const listHeight = rowHeight * layoutCount + rowGap * (layoutCount - 1);
+          let y = taskAreaTop + Math.min(72, Math.max(0, (taskAreaHeight - listHeight) * 0.12));
 
           if (visibleItems.length === 0) {
             ctx.fillStyle = "#94a3b8";
-            ctx.font = `750 34px ${fontFamily}`;
+            ctx.font = `750 ${taskFontSize}px ${fontFamily}`;
             ctx.textAlign = "center";
-            ctx.fillText("기록된 할 일이 없어요", W / 2, y + 78);
+            ctx.fillText("기록된 할 일이 없어요", W / 2, y + rowHeight / 2 + taskFontSize / 3);
           }
 
           visibleItems.forEach((item) => {
-            if (y + rowHeight > maxY) {
+            if (y + rowHeight > taskAreaBottom) {
               return;
             }
 
-            drawRoundedRect(ctx, cardX, y, cardWidth, rowHeight, 20);
+            drawRoundedRect(ctx, cardX, y, cardWidth, rowHeight, rowRadius);
             ctx.fillStyle = "#ffffff";
             ctx.fill();
             ctx.strokeStyle = "#e2e8f0";
@@ -3157,25 +3181,44 @@
 
             ctx.textAlign = "center";
             ctx.fillStyle = iconColor;
-            ctx.font = `900 40px ${fontFamily}`;
-            ctx.fillText(icon, cardX + 42, y + 56);
+            ctx.font = `900 ${iconFontSize}px ${fontFamily}`;
+            ctx.fillText(icon, cardX + 42, y + rowHeight / 2 + iconFontSize * 0.34);
 
             ctx.textAlign = "left";
             ctx.fillStyle = "#0f172a";
-            ctx.font = `800 30px ${fontFamily}`;
+            ctx.font = `800 ${taskFontSize}px ${fontFamily}`;
             const maxTextWidth = cardWidth - 90 - 220;
             const truncated = truncateForCanvas(ctx, item.text, maxTextWidth);
-            ctx.fillText(truncated, cardX + 76, y + 41);
+            ctx.fillText(truncated, cardX + 76, y + rowHeight * 0.44);
 
             ctx.fillStyle = "#64748b";
-            ctx.font = `700 23px ${fontFamily}`;
+            ctx.font = `700 ${metaFontSize}px ${fontFamily}`;
             const deadlineText = Number.isFinite(item.deadlineAt) && item.deadlineAt > 0
               ? `마감 ${formatDeadline(item.deadlineAt)} · ${getCalendarTaskStatusLabel(item)}`
               : getCalendarTaskStatusLabel(item);
-            ctx.fillText(truncateForCanvas(ctx, deadlineText, maxTextWidth + 200), cardX + 76, y + 70);
+            ctx.fillText(truncateForCanvas(ctx, deadlineText, maxTextWidth + 200), cardX + 76, y + rowHeight * 0.74);
 
             y += rowHeight + rowGap;
           });
+
+          if (overflowCount > 0 && y + rowHeight <= taskAreaBottom) {
+            drawRoundedRect(ctx, cardX, y, cardWidth, rowHeight, rowRadius);
+            ctx.fillStyle = "#fff7f0";
+            ctx.fill();
+            ctx.strokeStyle = "#fde7e1";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#dc2626";
+            ctx.font = `900 ${iconFontSize}px ${fontFamily}`;
+            ctx.fillText("…", cardX + 42, y + rowHeight / 2 + iconFontSize * 0.22);
+
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#0f172a";
+            ctx.font = `800 ${taskFontSize}px ${fontFamily}`;
+            ctx.fillText(`외 ${overflowCount}개 더 있어요`, cardX + 76, y + rowHeight * 0.55);
+          }
 
           if (shareCatImage.complete && shareCatImage.naturalWidth > 0) {
             const kittyHeight = 529;
@@ -3249,7 +3292,7 @@
               const dataUrl = buildShareImageDataUrl(selectedCalendarDayKey);
               const link = document.createElement("a");
               link.href = dataUrl;
-              link.download = `share-${selectedCalendarDayKey}.png`;
+              link.download = `helloeomji-${selectedCalendarDayKey}.png`;
               document.body.appendChild(link);
               link.click();
               link.remove();
