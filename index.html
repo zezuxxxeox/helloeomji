@@ -1278,10 +1278,6 @@
         color: var(--title-red);
       }
 
-      .calendar-count--rescued .calendar-count-icon {
-        color: rgb(217 119 6);
-      }
-
       .calendar-detail {
         display: grid;
         gap: 8px;
@@ -2237,16 +2233,18 @@
         }
 
         function getCalendarTaskStatusLabel(item) {
+          const rescueSuffix = Number.isFinite(item.rescuedAt)
+            ? item.rescueReason === "forgot"
+              ? " (깜빡했어요)"
+              : " (늦었어요)"
+            : "";
+
           if (item.status === "petted") {
-            return "쓰다듬기 완료";
+            return `쓰다듬기 완료${rescueSuffix}`;
           }
 
           if (item.status === "completed") {
-            if (Number.isFinite(item.rescuedAt)) {
-              return item.rescueReason === "forgot" ? "깜빡했어 구제" : "늦게했어 구제";
-            }
-
-            return "완료";
+            return `완료${rescueSuffix}`;
           }
 
           if (item.status === "failed") {
@@ -3120,8 +3118,6 @@
               activeCount: 0,
               completedCount: 0,
             };
-            const rescueCounts = normalizeRescueCounts(record.rescueCounts);
-            const rescueTotal = rescueCounts.forgot + rescueCounts.late;
             const dayCell = document.createElement("button");
             const dayNumber = document.createElement("span");
             const dayClassNames = ["calendar-day"];
@@ -3150,9 +3146,6 @@
               createCalendarCount("✓", "done", record.completedCount ?? 0),
               createCalendarCount("✗", "failed", record.returnedCatCount ?? 0),
             );
-            if (rescueTotal > 0) {
-              dayCell.append(createCalendarCount("↺", "rescued", rescueTotal));
-            }
             calendarGrid.appendChild(dayCell);
           }
 
