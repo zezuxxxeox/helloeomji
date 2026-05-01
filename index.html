@@ -268,6 +268,12 @@
         color: rgb(23 23 23);
       }
 
+      .small-button.rescue {
+        border-color: rgba(212, 49, 43, 0.42);
+        background: rgb(255 255 255);
+        color: var(--title-red);
+      }
+
       .small-button:disabled {
         cursor: not-allowed;
         opacity: 0.45;
@@ -475,7 +481,7 @@
 
       .cat-sprite[data-status="failed"]::before {
         background-image: url("./public/cat-returning.png");
-        animation: none;
+        animation: kittyTurnBack 0.46s cubic-bezier(0.18, 0.9, 0.22, 1) both;
         opacity: 1;
         transform: none;
       }
@@ -508,6 +514,18 @@
         100% {
           opacity: 1;
           transform: translateX(-50%) scale(1);
+        }
+      }
+
+      @keyframes kittyTurnBack {
+        0% {
+          transform: rotateY(-180deg) scale(0.96);
+        }
+        64% {
+          transform: rotateY(14deg) scale(1.02);
+        }
+        100% {
+          transform: rotateY(0deg) scale(1);
         }
       }
 
@@ -999,7 +1017,11 @@
         }
 
         .petted-heart {
-          top: 6%;
+          top: 28%;
+          font-size: clamp(36px, 4.8vw, 60px);
+        }
+
+        .cat-sprite[data-status="failed"]::after {
           font-size: clamp(36px, 4.8vw, 60px);
         }
 
@@ -1388,6 +1410,7 @@
       const LANE_PATTERN = [0, -1, 1, -2, 2];
       const DEADLINE_REMINDER_LEAD_MS = 10 * 60 * 1000;
       const FAILED_CAT_VISIBLE_MS = 5000;
+      const DAILY_RESCUE_LIMIT_PER_REASON = 2;
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
@@ -1441,6 +1464,8 @@
             completedAt: null,
             failedAt: null,
             hiddenAt: null,
+            rescuedAt: null,
+            rescueReason: null,
             pettedAt: null,
           },
         ];
@@ -1481,6 +1506,29 @@
             status: "failed",
             failedAt: now,
             hiddenAt: null,
+          };
+        });
+
+        return changed ? nextTasks : tasks;
+      }
+
+      function rescueLateTask(tasks, id, now, reason) {
+        let changed = false;
+
+        const nextTasks = tasks.map((task) => {
+          if (task.id !== id || task.status !== "failed") {
+            return task;
+          }
+
+          changed = true;
+
+          return {
+            ...task,
+            status: "completed",
+            completedAt: now,
+            hiddenAt: null,
+            rescuedAt: now,
+            rescueReason: reason,
           };
         });
 
@@ -1720,9 +1768,9 @@
           const approach = perspective.approachRatio;
           const isFailed = task.status === "failed";
           const isArrived = !isFailed && approach >= 1;
-          const sideSpread = isFailed ? 32 : 90 * (1 - approach * 0.65);
+          const sideSpread = 90 * (1 - approach * 0.65);
           const laneOffset = lane * sideSpread;
-          const bottomPercent = isFailed ? -18 : 31 - approach * 50;
+          const bottomPercent = 31 - approach * 50;
 
           sprite.style.bottom = `${bottomPercent}%`;
           sprite.style.transform = `translate(calc(-50% + ${laneOffset}px), 0) scale(${perspective.scale})`;
@@ -1972,6 +2020,60 @@
           return tasks.filter((task) => getTaskDayKey(task) === dayKey);
         }
 
+        function normalizeRescueCounts(value) {
+          const counts = value && typeof value === "object" ? value : {};
+
+          return {
+            forgot: Number.isFinite(counts.forgot) ? counts.forgot : 0,
+            late: Number.isFinite(counts.late) ? counts.late : 0,
+          };
+        }
+
+        function countTaskRescuesForDay(dayTimestamp, reason) {
+          const dayKey = getDayKey(dayTimestamp);
+          return tasks.filter((task) => (
+            Number.isFinite(task.rescuedAt) &&
+            getDayKey(task.rescuedAt) === dayKey &&
+            task.rescueReason === reason
+          )).length;
+        }
+
+        function getRescueCount(dayTimestamp, reason) {
+          const dayKey = getDayKey(dayTimestamp);
+          const recordCounts = normalizeRescueCounts(dailyRecords[dayKey]?.rescueCounts);
+          return Math.max(
+            recordCounts[reason] ?? 0,
+            countTaskRescuesForDay(dayTimestamp, reason),
+          );
+        }
+
+        function getRescueRemaining(dayTimestamp, reason) {
+          return Math.max(0, DAILY_RESCUE_LIMIT_PER_REASON - getRescueCount(dayTimestamp, reason));
+        }
+
+        function canRescueLateTask(task, rescueNow, reason) {
+          return task?.status === "failed" && getRescueRemaining(rescueNow, reason) > 0;
+        }
+
+        function incrementRescueCount(rescueNow, reason) {
+          const dayKey = getDayKey(rescueNow);
+          const currentRecord = dailyRecords[dayKey] ?? {};
+          const currentCounts = normalizeRescueCounts(currentRecord.rescueCounts);
+
+          dailyRecords = {
+            ...dailyRecords,
+            [dayKey]: {
+              ...currentRecord,
+              rescueCounts: {
+                ...currentCounts,
+                [reason]: getRescueCount(rescueNow, reason) + 1,
+              },
+            },
+          };
+
+          saveDailyRecords();
+        }
+
         function buildDailyRecordFromTasks(dayTasks) {
           const stats = calculateStats(dayTasks);
 
@@ -1980,6 +2082,10 @@
             completedCount: stats.completedCount,
             pettedCount: stats.pettedCount,
             returnedCatCount: stats.returnedCatCount,
+            rescueCounts: {
+              forgot: dayTasks.filter((task) => Number.isFinite(task.rescuedAt) && task.rescueReason === "forgot").length,
+              late: dayTasks.filter((task) => Number.isFinite(task.rescuedAt) && task.rescueReason === "late").length,
+            },
             totalCount: dayTasks.length,
           };
         }
@@ -1990,10 +2096,20 @@
 
         function saveDailyRecord(recordNow) {
           const dayKey = getDayKey(recordNow);
+          const existingRecord = dailyRecords[dayKey] ?? {};
+          const nextRecord = calculateTodayStats(recordNow);
+          const existingCounts = normalizeRescueCounts(existingRecord.rescueCounts);
+          const nextCounts = normalizeRescueCounts(nextRecord.rescueCounts);
 
           dailyRecords = {
             ...dailyRecords,
-            [dayKey]: calculateTodayStats(recordNow),
+            [dayKey]: {
+              ...nextRecord,
+              rescueCounts: {
+                forgot: Math.max(existingCounts.forgot, nextCounts.forgot),
+                late: Math.max(existingCounts.late, nextCounts.late),
+              },
+            },
           };
 
           saveDailyRecords();
@@ -2023,7 +2139,17 @@
 
           const nextDailyRecords = { ...dailyRecords };
           pastTasksByDay.forEach((dayTasks, dayKey) => {
-            nextDailyRecords[dayKey] = buildDailyRecordFromTasks(dayTasks);
+            const existingRecord = nextDailyRecords[dayKey] ?? {};
+            const nextRecord = buildDailyRecordFromTasks(dayTasks);
+            const existingCounts = normalizeRescueCounts(existingRecord.rescueCounts);
+            const nextCounts = normalizeRescueCounts(nextRecord.rescueCounts);
+            nextDailyRecords[dayKey] = {
+              ...nextRecord,
+              rescueCounts: {
+                forgot: Math.max(existingCounts.forgot, nextCounts.forgot),
+                late: Math.max(existingCounts.late, nextCounts.late),
+              },
+            };
           });
           dailyRecords = nextDailyRecords;
           tasks = currentTasks;
@@ -2378,6 +2504,33 @@
             render();
           });
 
+          function createRescueButton(reason, label) {
+            const button = document.createElement("button");
+            button.className = "small-button rescue";
+            button.type = "button";
+            button.textContent = label;
+            button.dataset.rescueButton = reason;
+            button.addEventListener("click", () => {
+              const rescueNow = Date.now();
+              const targetTask = tasks.find((currentTask) => currentTask.id === task.id);
+
+              if (!canRescueLateTask(targetTask, rescueNow, reason)) {
+                setMessage(`${label}는 오늘 2번까지 가능해요`);
+                render();
+                return;
+              }
+
+              incrementRescueCount(rescueNow, reason);
+              tasks = rescueLateTask(tasks, task.id, rescueNow, reason);
+              setMessage(`${label}로 구제했어요`);
+              render();
+            });
+            return button;
+          }
+
+          const forgotButton = createRescueButton("forgot", "깜빡했어");
+          const lateButton = createRescueButton("late", "늦게했어");
+
           const petButton = document.createElement("button");
           petButton.className = "small-button reward";
           petButton.type = "button";
@@ -2402,7 +2555,7 @@
 
           titleRow.append(title, badge);
           progressTrack.append(progressFill);
-          actions.append(completeButton, petButton, deleteButton);
+          actions.append(completeButton, forgotButton, lateButton, petButton, deleteButton);
           item.append(titleRow, meta, progressTrack, actions);
           updateTaskItem(item, task);
 
@@ -2415,6 +2568,7 @@
           const meta = item.querySelector("[data-task-meta]");
           const progress = item.querySelector("[data-task-progress]");
           const completeButton = item.querySelector("[data-complete-button]");
+          const rescueButtons = [...item.querySelectorAll("[data-rescue-button]")];
           const petButton = item.querySelector("[data-pet-button]");
           const approachPercent = Math.round(calculateCatApproach(task, now) * 100);
 
@@ -2423,6 +2577,19 @@
           meta.textContent = `마감 ${formatDeadline(task.deadlineAt)} · 접근률 ${approachPercent}%`;
           progress.style.width = `${approachPercent}%`;
           completeButton.disabled = task.status !== "active";
+          rescueButtons.forEach((button) => {
+            const reason = button.dataset.rescueButton;
+            const remaining = getRescueRemaining(now, reason);
+            const label = reason === "forgot" ? "깜빡했어" : "늦게했어";
+
+            button.hidden = task.status !== "failed";
+            button.disabled = task.status !== "failed" || remaining <= 0;
+            button.title =
+              remaining > 0
+                ? `오늘 ${remaining}번 남았어요`
+                : `오늘 ${label}를 모두 사용했어요`;
+            button.textContent = remaining > 0 ? label : `${label} 소진`;
+          });
           petButton.disabled = !canPetCat(task, now);
         }
 

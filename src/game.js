@@ -48,6 +48,8 @@ export function addTask(tasks, text, deadlineAt, now) {
       status: "active",
       completedAt: null,
       failedAt: null,
+      rescuedAt: null,
+      rescueReason: null,
       pettedAt: null,
     },
   ];
@@ -87,6 +89,29 @@ export function failOverdueTasks(tasks, now) {
       ...task,
       status: "failed",
       failedAt: now,
+    };
+  });
+
+  return changed ? nextTasks : tasks;
+}
+
+export function rescueLateTask(tasks, id, now, reason) {
+  let changed = false;
+
+  const nextTasks = tasks.map((task) => {
+    if (task.id !== id || task.status !== "failed") {
+      return task;
+    }
+
+    changed = true;
+
+    return {
+      ...task,
+      status: "completed",
+      completedAt: now,
+      hiddenAt: null,
+      rescuedAt: now,
+      rescueReason: reason,
     };
   });
 

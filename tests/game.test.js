@@ -9,6 +9,7 @@ import {
   deleteTask,
   failOverdueTasks,
   petCat,
+  rescueLateTask,
 } from "../src/game.js";
 
 const now = new Date("2026-04-29T08:00:00.000Z").getTime();
@@ -26,6 +27,8 @@ function activeTask(overrides = {}) {
     status: "active",
     completedAt: null,
     failedAt: null,
+    rescuedAt: null,
+    rescueReason: null,
     pettedAt: null,
     ...overrides,
   };
@@ -69,6 +72,8 @@ describe("데드라인 헌터 순수 함수", () => {
         status: "active",
         completedAt: null,
         failedAt: null,
+        rescuedAt: null,
+        rescueReason: null,
         pettedAt: null,
       },
     ]);
@@ -111,6 +116,31 @@ describe("데드라인 헌터 순수 함수", () => {
 
     expect(failOverdueTasks(tasks, now)).toBe(tasks);
     expect(tasks[0].failedAt).toBe(past);
+  });
+
+  it("failed tasks can be rescued as a forgot completion", () => {
+    const tasks = [activeTask({ status: "failed", failedAt: past })];
+    const result = rescueLateTask(tasks, "task-1", now, "forgot");
+
+    expect(result[0].status).toBe("completed");
+    expect(result[0].completedAt).toBe(now);
+    expect(result[0].rescuedAt).toBe(now);
+    expect(result[0].rescueReason).toBe("forgot");
+    expect(tasks[0].status).toBe("failed");
+  });
+
+  it("failed tasks can be rescued as a late completion", () => {
+    const tasks = [activeTask({ status: "failed", failedAt: past })];
+    const result = rescueLateTask(tasks, "task-1", now, "late");
+
+    expect(result[0].status).toBe("completed");
+    expect(result[0].rescueReason).toBe("late");
+  });
+
+  it("non-failed tasks cannot be rescued", () => {
+    const tasks = [activeTask()];
+
+    expect(rescueLateTask(tasks, "task-1", now, "forgot")).toBe(tasks);
   });
 
   it("활성 헬로키티는 마감 시간에 맞춰 계속 다가온다", () => {
