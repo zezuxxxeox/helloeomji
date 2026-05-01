@@ -406,11 +406,17 @@
         border: 1px solid rgb(226 232 240);
         border-radius: 26px;
         background-color: #ffffff;
-        background-image: url("./public/park-background.png");
+        background-image: url("./public/park-background.jpg");
         background-size: cover;
         background-position: center;
         isolation: isolate;
         overflow: hidden;
+      }
+
+      @media (max-width: 860px) {
+        .park-stage {
+          background-image: url("./public/park-background-mobile.jpg");
+        }
       }
 
       .cat-stage {
@@ -2235,8 +2241,8 @@
         function getCalendarTaskStatusLabel(item) {
           const rescueSuffix = Number.isFinite(item.rescuedAt)
             ? item.rescueReason === "forgot"
-              ? " (깜빡했어요)"
-              : " (늦었어요)"
+              ? " (깜빡했어)"
+              : " (늦게했어)"
             : "";
 
           if (item.status === "petted") {
