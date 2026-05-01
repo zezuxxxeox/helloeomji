@@ -1398,18 +1398,18 @@
       }
 
       .task-meta-time {
-        border: 1px solid transparent;
+        border: 1px solid rgb(203 213 225);
         border-radius: 6px;
-        background: transparent;
+        background: rgb(255 255 255);
         color: inherit;
         font: inherit;
-        padding: 1px 4px;
+        padding: 1px 6px;
         cursor: pointer;
       }
 
       .task-meta-time:hover:not(:disabled),
       .task-meta-time:focus {
-        border-color: rgb(203 213 225);
+        border-color: rgb(148 163 184);
         background: rgb(248 250 252);
         outline: none;
       }
@@ -1418,6 +1418,8 @@
         cursor: default;
         color: rgb(82 82 82);
         opacity: 0.7;
+        border-color: rgb(226 232 240);
+        background: transparent;
       }
 
       .task-meta-time::-webkit-calendar-picker-indicator {
@@ -1920,7 +1922,7 @@
           const isArrived = !isFailed && approach >= 1;
           const sideSpread = 90 * (1 - approach * 0.65);
           const laneOffset = lane * sideSpread;
-          const bottomPercent = 31 - approach * 50;
+          const bottomPercent = 46 - approach * 65;
 
           sprite.style.bottom = `${bottomPercent}%`;
           sprite.style.transform = `translate(calc(-50% + ${laneOffset}px), 0) scale(${perspective.scale})`;
