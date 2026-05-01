@@ -406,7 +406,7 @@
         border: 1px solid rgb(226 232 240);
         border-radius: 26px;
         background-color: #ffffff;
-        background-image: url("./public/park-background.jpg");
+        background-image: url("./public/park-background.png");
         background-size: cover;
         background-position: center;
         isolation: isolate;
@@ -1217,6 +1217,16 @@
         border-radius: 14px;
         background: white;
         padding: 6px;
+        text-align: left;
+      }
+
+      button.calendar-day {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
       }
 
       .calendar-day.is-empty {
@@ -1228,6 +1238,11 @@
       .calendar-day.is-today {
         border-color: rgb(14 116 144);
         box-shadow: 0 0 0 3px rgb(207 250 254);
+      }
+
+      .calendar-day.is-selected {
+        border-color: var(--title-red);
+        box-shadow: 0 0 0 3px rgba(212, 49, 43, 0.16);
       }
 
       .calendar-date {
@@ -1261,6 +1276,62 @@
 
       .calendar-count--failed .calendar-count-icon {
         color: var(--title-red);
+      }
+
+      .calendar-detail {
+        display: grid;
+        gap: 8px;
+        border-top: 1px solid rgb(226 232 240);
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      .calendar-detail[hidden] {
+        display: none;
+      }
+
+      .calendar-detail-title {
+        color: rgb(23 23 23);
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .calendar-detail-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .calendar-detail-item {
+        display: grid;
+        gap: 3px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 12px;
+        background: rgb(255 255 255);
+        padding: 9px 10px;
+      }
+
+      .calendar-detail-name {
+        color: rgb(23 23 23);
+        font-size: 13px;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+      }
+
+      .calendar-detail-meta {
+        color: rgb(82 82 82);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .calendar-detail-status {
+        color: var(--title-red);
+        font-weight: 900;
+      }
+
+      .calendar-detail-empty {
+        color: rgb(82 82 82);
+        font-size: 13px;
+        font-weight: 800;
       }
 
       .task-item {
@@ -1426,6 +1497,10 @@
               <span>토</span>
             </div>
             <div class="calendar-grid" data-calendar-grid></div>
+            <div class="calendar-detail" data-calendar-detail>
+              <strong class="calendar-detail-title" data-calendar-detail-title></strong>
+              <div class="calendar-detail-list" data-calendar-detail-list></div>
+            </div>
           </div>
         </aside>
       </section>
@@ -1830,6 +1905,9 @@
         const calendarView = document.querySelector("[data-calendar-view]");
         const calendarTitle = document.querySelector("[data-calendar-title]");
         const calendarGrid = document.querySelector("[data-calendar-grid]");
+        const calendarDetail = document.querySelector("[data-calendar-detail]");
+        const calendarDetailTitle = document.querySelector("[data-calendar-detail-title]");
+        const calendarDetailList = document.querySelector("[data-calendar-detail-list]");
         const calendarPrev = document.querySelector("[data-calendar-prev]");
         const calendarNext = document.querySelector("[data-calendar-next]");
         const emptyPark = document.querySelector("[data-empty-park]");
@@ -1850,7 +1928,8 @@
         if (
           !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
           panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
-          !calendarGrid || !calendarPrev || !calendarNext || !emptyPark ||
+          !calendarGrid || !calendarDetail || !calendarDetailTitle || !calendarDetailList ||
+          !calendarPrev || !calendarNext || !emptyPark ||
           !currentTime || !currentDate || !currentClock ||
           !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
           !statActive || !statCompleted || !quickAddToggle || !quickAddPanel ||
@@ -1868,6 +1947,7 @@
         let now = Date.now();
         let activePanelView = "tasks";
         let calendarMonth = new Date(now);
+        let selectedCalendarDayKey = getDayKey(now);
         let dailyRecords = loadDailyRecords();
         let tasks = loadStoredTasks();
         let taskHistory = loadTaskHistory(tasks);
@@ -2077,6 +2157,78 @@
           return Math.max(0, DAILY_RESCUE_LIMIT_PER_REASON - getRescueCount(dayTimestamp, reason));
         }
 
+        function summarizeCalendarTask(task) {
+          return {
+            id: task.id,
+            text: task.text,
+            status: task.status,
+            deadlineAt: task.deadlineAt,
+            completedAt: Number.isFinite(task.completedAt) ? task.completedAt : null,
+            failedAt: Number.isFinite(task.failedAt) ? task.failedAt : null,
+            rescuedAt: Number.isFinite(task.rescuedAt) ? task.rescuedAt : null,
+            rescueReason: typeof task.rescueReason === "string" ? task.rescueReason : null,
+            pettedAt: Number.isFinite(task.pettedAt) ? task.pettedAt : null,
+          };
+        }
+
+        function normalizeCalendarTaskItem(item) {
+          if (!item || typeof item.text !== "string") {
+            return null;
+          }
+
+          return {
+            id: typeof item.id === "string" ? item.id : "",
+            text: item.text,
+            status: typeof item.status === "string" ? item.status : "active",
+            deadlineAt: Number.isFinite(item.deadlineAt) ? item.deadlineAt : 0,
+            completedAt: Number.isFinite(item.completedAt) ? item.completedAt : null,
+            failedAt: Number.isFinite(item.failedAt) ? item.failedAt : null,
+            rescuedAt: Number.isFinite(item.rescuedAt) ? item.rescuedAt : null,
+            rescueReason: typeof item.rescueReason === "string" ? item.rescueReason : null,
+            pettedAt: Number.isFinite(item.pettedAt) ? item.pettedAt : null,
+          };
+        }
+
+        function getCalendarTaskStatusLabel(item) {
+          if (item.status === "petted") {
+            return "쓰다듬기 완료";
+          }
+
+          if (item.status === "completed") {
+            if (Number.isFinite(item.rescuedAt)) {
+              return item.rescueReason === "forgot" ? "깜빡했어 구제" : "늦게했어 구제";
+            }
+
+            return "완료";
+          }
+
+          if (item.status === "failed") {
+            return "실패";
+          }
+
+          return "진행 중";
+        }
+
+        function getCalendarTaskItems(dayKey) {
+          const liveItems = tasks
+            .filter((task) => getTaskDayKey(task) === dayKey)
+            .map(summarizeCalendarTask);
+
+          if (liveItems.length > 0) {
+            return liveItems;
+          }
+
+          const savedItems = dailyRecords[dayKey]?.taskItems;
+          return Array.isArray(savedItems)
+            ? savedItems.map(normalizeCalendarTaskItem).filter(Boolean)
+            : [];
+        }
+
+        function formatCalendarDayTitle(dayKey) {
+          const [, monthText, dayText] = dayKey.split("-");
+          return `${Number(monthText)}월 ${Number(dayText)}일 할 일`;
+        }
+
         function canRescueLateTask(task, rescueNow, reason) {
           return task?.status === "failed" && getRescueRemaining(rescueNow, reason) > 0;
         }
@@ -2112,6 +2264,7 @@
               forgot: dayTasks.filter((task) => Number.isFinite(task.rescuedAt) && task.rescueReason === "forgot").length,
               late: dayTasks.filter((task) => Number.isFinite(task.rescuedAt) && task.rescueReason === "late").length,
             },
+            taskItems: dayTasks.map(summarizeCalendarTask),
             totalCount: dayTasks.length,
           };
         }
@@ -2751,15 +2904,71 @@
           return item;
         }
 
+        function renderCalendarDetail() {
+          const items = getCalendarTaskItems(selectedCalendarDayKey)
+            .slice()
+            .sort((left, right) => {
+              const leftDeadline = Number.isFinite(left.deadlineAt) ? left.deadlineAt : 0;
+              const rightDeadline = Number.isFinite(right.deadlineAt) ? right.deadlineAt : 0;
+              return leftDeadline - rightDeadline || left.text.localeCompare(right.text, "ko-KR");
+            });
+
+          calendarDetail.hidden = false;
+          calendarDetailTitle.textContent = formatCalendarDayTitle(selectedCalendarDayKey);
+          calendarDetailList.textContent = "";
+
+          if (items.length === 0) {
+            const empty = document.createElement("p");
+            const record = dailyRecords[selectedCalendarDayKey] ?? {};
+            const completedCount = record.completedCount ?? 0;
+            const returnedCatCount = record.returnedCatCount ?? 0;
+
+            empty.className = "calendar-detail-empty";
+            empty.textContent =
+              completedCount > 0 || returnedCatCount > 0
+                ? `이전 기록: 완료 ${completedCount}개 · 실패 ${returnedCatCount}개`
+                : "기록된 할 일이 없어요";
+            calendarDetailList.appendChild(empty);
+            return;
+          }
+
+          items.forEach((item) => {
+            const row = document.createElement("div");
+            const name = document.createElement("span");
+            const meta = document.createElement("span");
+            const status = document.createElement("span");
+            const deadlineText = Number.isFinite(item.deadlineAt) && item.deadlineAt > 0
+              ? `마감 ${formatDeadline(item.deadlineAt)}`
+              : "마감 시간 없음";
+
+            row.className = "calendar-detail-item";
+            name.className = "calendar-detail-name";
+            name.textContent = item.text;
+            meta.className = "calendar-detail-meta";
+            status.className = "calendar-detail-status";
+            status.textContent = getCalendarTaskStatusLabel(item);
+            meta.append(status, ` · ${deadlineText}`);
+            row.append(name, meta);
+            calendarDetailList.appendChild(row);
+          });
+        }
+
         function renderCalendar() {
           const year = calendarMonth.getFullYear();
           const month = calendarMonth.getMonth();
           const firstDay = new Date(year, month, 1);
           const daysInMonth = new Date(year, month + 1, 0).getDate();
           const todayKey = getDayKey(now);
+          const visibleMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
 
           calendarTitle.textContent = `${year}년 ${month + 1}월`;
           calendarGrid.textContent = "";
+
+          if (!selectedCalendarDayKey || !selectedCalendarDayKey.startsWith(visibleMonthKey)) {
+            selectedCalendarDayKey = todayKey.startsWith(visibleMonthKey)
+              ? todayKey
+              : getDayKey(firstDay.getTime());
+          }
 
           for (let index = 0; index < firstDay.getDay(); index += 1) {
             const emptyDay = document.createElement("div");
@@ -2774,10 +2983,27 @@
               activeCount: 0,
               completedCount: 0,
             };
-            const dayCell = document.createElement("div");
+            const dayCell = document.createElement("button");
             const dayNumber = document.createElement("span");
+            const dayClassNames = ["calendar-day"];
 
-            dayCell.className = `calendar-day${dayKey === todayKey ? " is-today" : ""}`;
+            if (dayKey === todayKey) {
+              dayClassNames.push("is-today");
+            }
+
+            if (dayKey === selectedCalendarDayKey) {
+              dayClassNames.push("is-selected");
+            }
+
+            dayCell.type = "button";
+            dayCell.className = dayClassNames.join(" ");
+            dayCell.dataset.calendarDay = dayKey;
+            dayCell.setAttribute("aria-label", `${day}일 기록 보기`);
+            dayCell.setAttribute("aria-pressed", String(dayKey === selectedCalendarDayKey));
+            dayCell.addEventListener("click", () => {
+              selectedCalendarDayKey = dayKey;
+              renderCalendar();
+            });
             dayNumber.className = "calendar-date";
             dayNumber.textContent = String(day);
             dayCell.append(
@@ -2787,6 +3013,8 @@
             );
             calendarGrid.appendChild(dayCell);
           }
+
+          renderCalendarDetail();
         }
 
         function renderPanelView() {
