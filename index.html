@@ -436,8 +436,8 @@
       .cat-sprite {
         position: absolute;
         left: 50%;
-        width: clamp(72px, 10vw, 118px);
-        height: clamp(90px, 13vw, 148px);
+        width: clamp(240px, 32vw, 340px);
+        height: clamp(360px, 48vw, 510px);
         transform-origin: 50% 100%;
         cursor: pointer;
         user-select: none;
@@ -515,12 +515,14 @@
 
       .cat-sprite[data-status="failed"] {
         cursor: default;
-        filter: grayscale(35%);
+        width: clamp(260px, 72vw, 430px);
+        height: clamp(350px, 96vw, 560px);
       }
 
       .cat-sprite[data-status="failed"]::before {
         background-image: url("./public/cat-returning.png");
         animation: kittyTurnBack 0.46s cubic-bezier(0.18, 0.9, 0.22, 1) both;
+        filter: grayscale(18%);
         opacity: 1;
         transform: none;
       }
@@ -532,7 +534,8 @@
         width: auto;
         height: auto;
         background: none;
-        font-size: clamp(12px, 1.6vw, 20px);
+        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+        font-size: clamp(28px, 4vw, 42px);
         line-height: 1;
         opacity: 1;
         text-shadow: none;
@@ -1061,7 +1064,7 @@
         }
 
         .cat-sprite[data-status="failed"]::after {
-          font-size: clamp(9px, 1.2vw, 15px);
+          font-size: clamp(28px, 8vw, 40px);
         }
 
         @keyframes pettedPopMobile {
@@ -1080,8 +1083,8 @@
         }
 
         .cat-sprite {
-          width: clamp(58px, 16vw, 92px);
-          height: clamp(74px, 20vw, 116px);
+          width: clamp(220px, 68vw, 300px);
+          height: clamp(330px, 102vw, 450px);
         }
       }
 
@@ -1792,7 +1795,7 @@
         if (task.status === "failed") {
           return {
             approachRatio: 1,
-            scale: 3.885,
+            scale: 1,
             opacity: 1,
             zIndex: 105,
           };
@@ -1800,7 +1803,7 @@
 
         return {
           approachRatio,
-          scale: 0.32 + approachRatio * 2.6,
+          scale: 0.14 + approachRatio * 0.86,
           opacity: 1,
           zIndex: Math.round(10 + approachRatio * 90),
         };
