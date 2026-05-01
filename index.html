@@ -3181,10 +3181,12 @@
             const kittyHeight = 529;
             const ratio = shareCatImage.naturalWidth / shareCatImage.naturalHeight;
             const kittyWidth = kittyHeight * ratio;
+            const kittyX = W - kittyWidth - 78 + kittyWidth * 0.05;
+            const kittyY = H - kittyHeight - 72 + kittyHeight * 0.1;
             ctx.drawImage(
               shareCatImage,
-              W - kittyWidth - 78,
-              H - kittyHeight - 72,
+              kittyX,
+              kittyY,
               kittyWidth,
               kittyHeight,
             );
