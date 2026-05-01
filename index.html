@@ -782,7 +782,7 @@
       .petted-heart {
         position: fixed;
         left: 50%;
-        top: 58%;
+        top: 54%;
         z-index: 103;
         pointer-events: none;
         font-size: clamp(12px, 1.6vw, 20px);
@@ -1059,11 +1059,12 @@
         }
 
         .petted-heart {
-          top: 28%;
+          top: 24%;
           font-size: clamp(36px, 4.8vw, 60px);
         }
 
         .cat-sprite[data-status="failed"]::after {
+          inset: auto auto 86% 50%;
           font-size: clamp(28px, 8vw, 40px);
         }
 
@@ -1949,7 +1950,7 @@
           const isArrived = !isFailed && approach >= 1;
           const sideSpread = 90 * (1 - approach * 0.65);
           const laneOffset = lane * sideSpread;
-          const bottomPercent = 46 - approach * 65;
+          const bottomPercent = 46 - approach * 74;
 
           sprite.style.bottom = `${bottomPercent}%`;
           sprite.style.transform = `translate(calc(-50% + ${laneOffset}px), 0) scale(${perspective.scale})`;
