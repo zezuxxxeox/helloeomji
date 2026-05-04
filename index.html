@@ -836,8 +836,29 @@
         }
 
         .task-panel {
-          min-height: 640px;
-          max-height: 660px;
+          display: block;
+          height: auto;
+          min-height: 0;
+          max-height: none;
+          overflow: visible;
+        }
+
+        .task-list,
+        .calendar-view {
+          min-height: 0;
+          overflow: visible;
+        }
+
+        .task-list {
+          padding-bottom: 88px;
+        }
+
+        .calendar-view {
+          padding-bottom: 128px;
+        }
+
+        .calendar-detail-list {
+          padding-bottom: 72px;
         }
 
         .message-line {
@@ -1023,8 +1044,8 @@
 
         .task-panel {
           border-radius: 20px;
-          min-height: 640px;
-          max-height: 660px;
+          min-height: 0;
+          max-height: none;
         }
 
         .task-list,
@@ -1557,6 +1578,34 @@
         border-radius: inherit;
         background: var(--title-red);
       }
+
+      @media (max-width: 860px) {
+        .task-panel {
+          display: block;
+          height: auto;
+          min-height: 0;
+          max-height: none;
+          overflow: visible;
+        }
+
+        .task-list,
+        .calendar-view {
+          min-height: 0;
+          overflow: visible;
+        }
+
+        .task-list {
+          padding-bottom: 88px;
+        }
+
+        .calendar-view {
+          padding-bottom: 128px;
+        }
+
+        .calendar-detail-list {
+          padding-bottom: 72px;
+        }
+      }
     </style>
   </head>
   <body class="min-h-screen bg-white text-neutral-950">
@@ -1649,7 +1698,7 @@
               <input
                 class="daily-diary-input"
                 type="text"
-                maxlength="15"
+                maxlength="20"
                 autocomplete="off"
                 spellcheck="false"
                 aria-label="한 줄 일기 쓰기"
@@ -1690,11 +1739,9 @@
     <script>
       const APPROACH_DURATION_MS = 6000;
       const LANE_PATTERN = [0, -1, 1, -2, 2];
-      const DEADLINE_REMINDER_LEAD_MS = 10 * 60 * 1000;
       const FAILED_CAT_VISIBLE_MS = 5000;
       const DAILY_RESCUE_LIMIT_PER_REASON = 2;
-      const DAILY_SUMMARY_MAX_LENGTH = 15;
-      const TODO_SHORTCUT_NAME = "HELLO EOMJI 할일추가";
+      const DAILY_SUMMARY_MAX_LENGTH = 20;
       const CALENDAR_ALARM_LEAD_MINUTES = 10;
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
@@ -2155,12 +2202,7 @@
         let pettingActive = false;
         let hasPettedDuringSession = false;
         let pendingPetTaskId = null;
-        let reminderPermissionRequest = null;
-        let pushSetupPromise = null;
-        let pushReminderSyncTimer = 0;
-        let lastSyncedPushText = "";
         let lockedScrollY = 0;
-        const remindedTaskKeys = new Set();
 
         function readStoredJson(key, fallback) {
           try {
@@ -2324,7 +2366,6 @@
 
           lastSavedTasksText = nextSavedTasksText;
           writeStoredJson(TASK_STORAGE_KEY, tasks);
-          queuePushReminderSync();
         }
 
         function saveDailyRecords() {
@@ -2793,220 +2834,6 @@
           }
         }
 
-        function getReminderKey(task) {
-          return `${task.id}:${task.createdAt}:${task.deadlineAt}`;
-        }
-
-        function urlBase64ToUint8Array(base64String) {
-          const padding = "=".repeat((4 - base64String.length % 4) % 4);
-          const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-          const rawData = window.atob(base64);
-          return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-        }
-
-        function canUsePushReminders() {
-          return (
-            "serviceWorker" in navigator &&
-            "PushManager" in window &&
-            "Notification" in window &&
-            window.isSecureContext
-          );
-        }
-
-        async function getPushPublicKey() {
-          const response = await fetch("/api/push/public-key", { cache: "no-store" });
-
-          if (!response.ok) {
-            throw new Error("push server unavailable");
-          }
-
-          const data = await response.json();
-          if (typeof data.publicKey !== "string" || !data.publicKey) {
-            throw new Error("push public key unavailable");
-          }
-
-          return data.publicKey;
-        }
-
-        async function postPushJson(path, body) {
-          const response = await fetch(path, {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: JSON.stringify(body),
-          });
-
-          if (!response.ok) {
-            throw new Error("push api failed");
-          }
-
-          return response.json();
-        }
-
-        async function ensurePushSubscription() {
-          if (!canUsePushReminders() || Notification.permission !== "granted") {
-            return null;
-          }
-
-          if (!pushSetupPromise) {
-            pushSetupPromise = (async () => {
-              const registration = await navigator.serviceWorker.register("/sw.js");
-              const readyRegistration = await navigator.serviceWorker.ready;
-              const existingSubscription = await readyRegistration.pushManager.getSubscription();
-              let subscription = existingSubscription;
-
-              if (!subscription) {
-                subscription = await readyRegistration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: urlBase64ToUint8Array(await getPushPublicKey()),
-                });
-              }
-
-              await postPushJson("/api/push/subscribe", {
-                subscription: subscription.toJSON(),
-              });
-
-              return subscription;
-            })().catch((error) => {
-              pushSetupPromise = null;
-              throw error;
-            });
-          }
-
-          return pushSetupPromise;
-        }
-
-        function getPushReminderTasks() {
-          const syncNow = Date.now();
-
-          return tasks
-            .filter((task) => (
-              task.status === "active" &&
-              Number.isFinite(task.deadlineAt) &&
-              task.deadlineAt > syncNow
-            ))
-            .map((task) => ({
-              id: task.id,
-              text: task.text,
-              status: task.status,
-              createdAt: task.createdAt,
-              deadlineAt: task.deadlineAt,
-            }));
-        }
-
-        async function syncPushReminders() {
-          if (!canUsePushReminders() || Notification.permission !== "granted") {
-            return;
-          }
-
-          const subscription = await ensurePushSubscription();
-
-          if (!subscription) {
-            return;
-          }
-
-          const payload = {
-            subscription: subscription.toJSON(),
-            tasks: getPushReminderTasks(),
-          };
-          const nextSyncedPushText = JSON.stringify(payload);
-
-          if (nextSyncedPushText === lastSyncedPushText) {
-            return;
-          }
-
-          await postPushJson("/api/push/reminders", payload);
-          lastSyncedPushText = nextSyncedPushText;
-        }
-
-        function queuePushReminderSync() {
-          window.clearTimeout(pushReminderSyncTimer);
-          pushReminderSyncTimer = window.setTimeout(() => {
-            pushReminderSyncTimer = 0;
-            syncPushReminders().catch(() => {});
-          }, 350);
-        }
-
-        function prepareGrantedPushReminders() {
-          if (!("Notification" in window) || Notification.permission !== "granted") {
-            return;
-          }
-
-          ensurePushSubscription()
-            .then(() => {
-              queuePushReminderSync();
-            })
-            .catch(() => {});
-        }
-
-        function canRequestBrowserNotification() {
-          return "Notification" in window && Notification.permission === "default";
-        }
-
-        function requestReminderPermission() {
-          if (!("Notification" in window)) {
-            return Promise.resolve("unsupported");
-          }
-
-          if (Notification.permission !== "default") {
-            if (Notification.permission === "granted") {
-              return ensurePushSubscription()
-                .then(() => {
-                  queuePushReminderSync();
-                  return Notification.permission;
-                })
-                .catch(() => Notification.permission);
-            }
-
-            return Promise.resolve(Notification.permission);
-          }
-
-          if (!reminderPermissionRequest) {
-            reminderPermissionRequest = Notification.requestPermission().finally(() => {
-              reminderPermissionRequest = null;
-            });
-          }
-
-          return reminderPermissionRequest.then((permission) => {
-            if (permission === "granted") {
-              queuePushReminderSync();
-              ensurePushSubscription().catch(() => {});
-            }
-
-            return permission;
-          });
-        }
-
-        function sendBrowserReminder(task) {
-          if (!("Notification" in window) || Notification.permission !== "granted") {
-            return;
-          }
-
-          try {
-            const notificationOptions = {
-              body: `${task.text} 마감시간이 10분 남았어요.`,
-              tag: `today-cat-${task.id}-${task.deadlineAt}`,
-              renotify: true,
-            };
-
-            notificationOptions.vibrate = [120, 60, 120];
-
-            new Notification("마감 알림", notificationOptions);
-          } catch (_) {}
-        }
-
-        function sendDeadlineReminder(task) {
-          const reminderText = `${task.text} 마감시간이 10분 남았어요.`;
-
-          setMessage(reminderText);
-          sendBrowserReminder(task);
-
-          if (navigator.vibrate) {
-            navigator.vibrate([120, 60, 120]);
-          }
-        }
-
         function formatTaskForTodoApp(task) {
           const deadlineText = new Intl.DateTimeFormat("ko-KR", {
             month: "long",
@@ -3103,36 +2930,6 @@
           }, 5000);
         }
 
-        function canOpenShortcutBridge() {
-          return (
-            /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-          );
-        }
-
-        function buildShortcutTaskPayload(task) {
-          return {
-            title: task.text,
-            dueAt: new Date(task.deadlineAt).toISOString(),
-            dueText: formatDeadline(task.deadlineAt),
-            notes: "HELLO EOMJI",
-          };
-        }
-
-        function buildShortcutUrl(targetTasks) {
-          const payload = {
-            source: "HELLO EOMJI",
-            tasks: targetTasks.map(buildShortcutTaskPayload),
-          };
-          const query = new URLSearchParams({
-            name: TODO_SHORTCUT_NAME,
-            input: "text",
-            text: JSON.stringify(payload),
-          });
-
-          return `shortcuts://run-shortcut?${query.toString()}`;
-        }
-
         async function shareTasksToTodoApp(targetTasks) {
           const shareTasks = targetTasks.filter(Boolean);
 
@@ -3147,17 +2944,11 @@
             return;
           } catch (_) {}
 
-          if (canOpenShortcutBridge()) {
-            window.location.href = buildShortcutUrl(shareTasks);
-            setMessage("할 일 앱으로 보내는 중이에요");
-            return;
-          }
-
           try {
             await navigator.clipboard.writeText(shareTasks.map(formatTaskForTodoApp).join("\n\n"));
-            setMessage("iPhone에서는 단축어로 바로 보낼 수 있어요");
+            setMessage("캘린더에 붙여넣을 내용을 복사했어요");
           } catch (_) {
-            setMessage("iPhone 단축어가 필요해요");
+            setMessage("캘린더 알림 파일을 열 수 없어요");
           }
         }
 
@@ -3168,33 +2959,6 @@
         function getAddedTasks(previousTasks, nextTasks) {
           const previousIds = new Set(previousTasks.map((task) => task.id));
           return nextTasks.filter((task) => !previousIds.has(task.id));
-        }
-
-        function notifyUpcomingDeadlines(reminderNow, reminderTasks = getTasksForDay(reminderNow)) {
-          reminderTasks.forEach((task) => {
-            const remainingMs = task.deadlineAt - reminderNow;
-            const reminderKey = getReminderKey(task);
-
-            if (
-              task.status !== "active" ||
-              remainingMs <= 0 ||
-              remainingMs > DEADLINE_REMINDER_LEAD_MS ||
-              remindedTaskKeys.has(reminderKey)
-            ) {
-              return;
-            }
-
-            remindedTaskKeys.add(reminderKey);
-
-            if (canRequestBrowserNotification()) {
-              requestReminderPermission().then(() => {
-                sendDeadlineReminder(task);
-              });
-              return;
-            }
-
-            sendDeadlineReminder(task);
-          });
         }
 
         function getTaskMessage(task) {
@@ -4084,7 +3848,6 @@
           const todayTasks = getTasksForDay(now);
           saveTasks();
           saveDailyRecord(now);
-          notifyUpcomingDeadlines(now, todayTasks);
           currentDate.textContent = formatClockDate(now);
           currentClock.textContent = formatClock(now);
           const todayDate = formatDateInputValue(now);
@@ -4239,7 +4002,6 @@
         setInterval(render, 250);
         renderQuickAdd();
         render();
-        prepareGrantedPushReminders();
       }
 
       document.addEventListener("dblclick", (event) => {
