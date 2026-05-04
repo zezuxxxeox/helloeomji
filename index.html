@@ -2319,33 +2319,31 @@
           return records && typeof records === "object" && !Array.isArray(records) ? records : {};
         }
 
-        function wrapDailySummaryLines(value, { trim }) {
-          const rawLines = value.replace(/\r\n?/g, "\n").split("\n");
-          const wrapped = [];
+        function capDailySummaryLines(value, { trim }) {
+          const totalCap = DAILY_SUMMARY_MAX_LINES * DAILY_SUMMARY_LINE_MAX_LENGTH;
+          const rawLines = value
+            .replace(/\r\n?/g, "\n")
+            .split("\n")
+            .slice(0, DAILY_SUMMARY_MAX_LINES);
+          const result = [];
+          let remaining = totalCap;
 
           for (const rawLine of rawLines) {
-            if (wrapped.length >= DAILY_SUMMARY_MAX_LINES) break;
-
             const cleaned = rawLine.replace(/[ \t]+/g, " ");
-            const codePoints = Array.from(trim ? cleaned.trim() : cleaned);
+            const prepared = trim ? cleaned.trim() : cleaned;
+            const codePoints = Array.from(prepared);
 
-            if (codePoints.length === 0) {
-              wrapped.push("");
+            if (remaining <= 0) {
+              result.push("");
               continue;
             }
 
-            for (
-              let index = 0;
-              index < codePoints.length && wrapped.length < DAILY_SUMMARY_MAX_LINES;
-              index += DAILY_SUMMARY_LINE_MAX_LENGTH
-            ) {
-              wrapped.push(
-                codePoints.slice(index, index + DAILY_SUMMARY_LINE_MAX_LENGTH).join(""),
-              );
-            }
+            const taken = codePoints.slice(0, remaining);
+            result.push(taken.join(""));
+            remaining -= taken.length;
           }
 
-          return wrapped.slice(0, DAILY_SUMMARY_MAX_LINES);
+          return result;
         }
 
         function sanitizeDailySummaryInput(value) {
@@ -2353,7 +2351,7 @@
             return "";
           }
 
-          return wrapDailySummaryLines(value, { trim: false }).join("\n");
+          return capDailySummaryLines(value, { trim: false }).join("\n");
         }
 
         function normalizeDailySummary(value) {
@@ -2361,7 +2359,7 @@
             return "";
           }
 
-          const lines = wrapDailySummaryLines(value, { trim: true });
+          const lines = capDailySummaryLines(value, { trim: true });
 
           while (lines.length > 0 && !lines[lines.length - 1]) {
             lines.pop();
