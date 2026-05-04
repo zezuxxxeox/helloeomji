@@ -3458,7 +3458,8 @@
           let taskAreaTop = 374;
 
           if (dailySummary) {
-            const summaryLines = dailySummary.split("\n");
+            ctx.font = `950 34px ${fontFamily}`;
+            const summaryLines = wrapCanvasText(ctx, dailySummary, cardWidth - 96);
             const lineHeight = 44;
             const verticalPadding = 36;
             const summaryHeight = Math.max(
@@ -3474,18 +3475,13 @@
 
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
-            ctx.font = `950 34px ${fontFamily}`;
 
             const blockHeight = lineHeight * summaryLines.length;
             const firstLineY =
               summaryY + (summaryHeight - blockHeight) / 2 + lineHeight * 0.75;
 
             summaryLines.forEach((line, lineIndex) => {
-              ctx.fillText(
-                truncateForCanvas(ctx, line, cardWidth - 96),
-                W / 2,
-                firstLineY + lineIndex * lineHeight,
-              );
+              ctx.fillText(line, W / 2, firstLineY + lineIndex * lineHeight);
             });
 
             taskAreaTop += summaryHeight + 22;
@@ -3616,6 +3612,32 @@
             result = result.slice(0, -1);
           }
           return result + ellipsis;
+        }
+
+        function wrapCanvasText(ctx, text, maxWidth) {
+          const lines = [];
+
+          for (const rawLine of text.split("\n")) {
+            if (rawLine.length === 0) {
+              lines.push("");
+              continue;
+            }
+
+            let current = "";
+            for (const char of rawLine) {
+              const candidate = current + char;
+              if (ctx.measureText(candidate).width <= maxWidth) {
+                current = candidate;
+              } else {
+                if (current) lines.push(current);
+                current = char;
+              }
+            }
+
+            if (current) lines.push(current);
+          }
+
+          return lines;
         }
 
         function loadShareImages(onReady, onError) {
