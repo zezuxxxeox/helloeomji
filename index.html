@@ -2319,21 +2319,41 @@
           return records && typeof records === "object" && !Array.isArray(records) ? records : {};
         }
 
+        function wrapDailySummaryLines(value, { trim }) {
+          const rawLines = value.replace(/\r\n?/g, "\n").split("\n");
+          const wrapped = [];
+
+          for (const rawLine of rawLines) {
+            if (wrapped.length >= DAILY_SUMMARY_MAX_LINES) break;
+
+            const cleaned = rawLine.replace(/[ \t]+/g, " ");
+            const codePoints = Array.from(trim ? cleaned.trim() : cleaned);
+
+            if (codePoints.length === 0) {
+              wrapped.push("");
+              continue;
+            }
+
+            for (
+              let index = 0;
+              index < codePoints.length && wrapped.length < DAILY_SUMMARY_MAX_LINES;
+              index += DAILY_SUMMARY_LINE_MAX_LENGTH
+            ) {
+              wrapped.push(
+                codePoints.slice(index, index + DAILY_SUMMARY_LINE_MAX_LENGTH).join(""),
+              );
+            }
+          }
+
+          return wrapped.slice(0, DAILY_SUMMARY_MAX_LINES);
+        }
+
         function sanitizeDailySummaryInput(value) {
           if (typeof value !== "string") {
             return "";
           }
 
-          return value
-            .replace(/\r\n?/g, "\n")
-            .split("\n")
-            .slice(0, DAILY_SUMMARY_MAX_LINES)
-            .map((line) =>
-              Array.from(line.replace(/[ \t]+/g, " "))
-                .slice(0, DAILY_SUMMARY_LINE_MAX_LENGTH)
-                .join(""),
-            )
-            .join("\n");
+          return wrapDailySummaryLines(value, { trim: false }).join("\n");
         }
 
         function normalizeDailySummary(value) {
@@ -2341,15 +2361,7 @@
             return "";
           }
 
-          const lines = value
-            .replace(/\r\n?/g, "\n")
-            .split("\n")
-            .slice(0, DAILY_SUMMARY_MAX_LINES)
-            .map((line) =>
-              Array.from(line.replace(/[ \t]+/g, " ").trim())
-                .slice(0, DAILY_SUMMARY_LINE_MAX_LENGTH)
-                .join(""),
-            );
+          const lines = wrapDailySummaryLines(value, { trim: true });
 
           while (lines.length > 0 && !lines[lines.length - 1]) {
             lines.pop();
