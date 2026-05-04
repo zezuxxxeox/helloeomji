@@ -37,6 +37,13 @@
         -webkit-text-size-adjust: 100%;
       }
 
+      @media (pointer: coarse) {
+        html,
+        body {
+          touch-action: pan-y;
+        }
+      }
+
       *::-webkit-scrollbar {
         display: none;
         width: 0;
@@ -1875,6 +1882,15 @@
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
+      const BACKUP_STORAGE_KEYS = [
+        TASK_STORAGE_KEY,
+        DAILY_RECORD_STORAGE_KEY,
+        TASK_HISTORY_STORAGE_KEY,
+      ];
+      const AUTO_BACKUP_DB_NAME = "hello-eomji-auto-backup-v1";
+      const AUTO_BACKUP_STORE_NAME = "snapshots";
+      const AUTO_BACKUP_SNAPSHOT_KEY = "latest";
+      const AUTO_BACKUP_DEBOUNCE_MS = 700;
 
       function isBlankText(text) {
         return typeof text !== "string" || text.trim().length === 0;
@@ -2340,6 +2356,9 @@
         let hasPettedDuringSession = false;
         let pendingPetTaskId = null;
         let lockedScrollY = 0;
+        let autoBackupTimer = 0;
+        let autoBackupLastText = "";
+        let autoBackupDbPromise = null;
 
         function readStoredJson(key, fallback) {
           try {
@@ -2353,7 +2372,149 @@
         function writeStoredJson(key, value) {
           try {
             localStorage.setItem(key, JSON.stringify(value));
+            scheduleAutoBackup();
           } catch (_) {}
+        }
+
+        function hasLocalBackupData() {
+          try {
+            return BACKUP_STORAGE_KEYS.some((key) => localStorage.getItem(key) !== null);
+          } catch (_) {
+            return false;
+          }
+        }
+
+        function isBackupPayloadUseful(payload) {
+          if (!payload || payload.app !== "helloeomji" || !payload.data) {
+            return false;
+          }
+
+          return BACKUP_STORAGE_KEYS.some((key) => {
+            if (!Object.prototype.hasOwnProperty.call(payload.data, key)) {
+              return false;
+            }
+
+            const value = payload.data[key];
+            if (Array.isArray(value)) {
+              return value.length > 0;
+            }
+
+            return value && typeof value === "object" && Object.keys(value).length > 0;
+          });
+        }
+
+        function openAutoBackupDb() {
+          if (!("indexedDB" in window)) {
+            return Promise.resolve(null);
+          }
+
+          if (autoBackupDbPromise) {
+            return autoBackupDbPromise;
+          }
+
+          autoBackupDbPromise = new Promise((resolve) => {
+            let request;
+
+            try {
+              request = indexedDB.open(AUTO_BACKUP_DB_NAME, 1);
+            } catch (_) {
+              resolve(null);
+              return;
+            }
+
+            request.onupgradeneeded = () => {
+              const db = request.result;
+              if (!db.objectStoreNames.contains(AUTO_BACKUP_STORE_NAME)) {
+                db.createObjectStore(AUTO_BACKUP_STORE_NAME);
+              }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => resolve(null);
+            request.onblocked = () => resolve(null);
+          });
+
+          return autoBackupDbPromise;
+        }
+
+        async function writeAutoBackup() {
+          const payload = buildBackupPayload();
+          const backupText = JSON.stringify(payload);
+
+          if (backupText === autoBackupLastText) {
+            return;
+          }
+
+          autoBackupLastText = backupText;
+          const db = await openAutoBackupDb();
+          if (!db) {
+            return;
+          }
+
+          await new Promise((resolve) => {
+            const transaction = db.transaction(AUTO_BACKUP_STORE_NAME, "readwrite");
+            transaction.objectStore(AUTO_BACKUP_STORE_NAME).put(payload, AUTO_BACKUP_SNAPSHOT_KEY);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => resolve();
+            transaction.onabort = () => resolve();
+          });
+        }
+
+        function scheduleAutoBackup() {
+          window.clearTimeout(autoBackupTimer);
+          autoBackupTimer = window.setTimeout(() => {
+            autoBackupTimer = 0;
+            writeAutoBackup().catch(() => {});
+          }, AUTO_BACKUP_DEBOUNCE_MS);
+        }
+
+        async function readAutoBackup() {
+          const db = await openAutoBackupDb();
+          if (!db) {
+            return null;
+          }
+
+          return new Promise((resolve) => {
+            const transaction = db.transaction(AUTO_BACKUP_STORE_NAME, "readonly");
+            const request = transaction.objectStore(AUTO_BACKUP_STORE_NAME).get(AUTO_BACKUP_SNAPSHOT_KEY);
+            request.onsuccess = () => resolve(request.result ?? null);
+            request.onerror = () => resolve(null);
+            transaction.onerror = () => resolve(null);
+            transaction.onabort = () => resolve(null);
+          });
+        }
+
+        function restoreLocalStorageFromBackupPayload(payload) {
+          for (const key of BACKUP_STORAGE_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(payload.data, key)) {
+              localStorage.setItem(key, JSON.stringify(payload.data[key]));
+            }
+          }
+        }
+
+        async function restoreFromAutoBackupIfNeeded() {
+          if (hasLocalBackupData()) {
+            scheduleAutoBackup();
+            return false;
+          }
+
+          const payload = await readAutoBackup();
+          if (!isBackupPayloadUseful(payload)) {
+            return false;
+          }
+
+          restoreLocalStorageFromBackupPayload(payload);
+          window.location.reload();
+          return true;
+        }
+
+        function requestPersistentStorage() {
+          if (!navigator.storage?.persist) {
+            return;
+          }
+
+          navigator.storage.persisted()
+            .then((persisted) => (persisted ? true : navigator.storage.persist()))
+            .catch(() => {});
         }
 
         function loadStoredTasks() {
@@ -4121,12 +4282,6 @@
           downloadShareImage();
         });
 
-        const BACKUP_STORAGE_KEYS = [
-          TASK_STORAGE_KEY,
-          DAILY_RECORD_STORAGE_KEY,
-          TASK_HISTORY_STORAGE_KEY,
-        ];
-
         function setSettingsPopoverOpen(open) {
           settingsPopover.hidden = !open;
           settingsToggle.setAttribute("aria-expanded", String(open));
@@ -4135,7 +4290,12 @@
         function buildBackupPayload() {
           const data = {};
           for (const key of BACKUP_STORAGE_KEYS) {
-            const raw = localStorage.getItem(key);
+            let raw = null;
+            try {
+              raw = localStorage.getItem(key);
+            } catch (_) {
+              continue;
+            }
             if (raw === null) continue;
             try {
               data[key] = JSON.parse(raw);
@@ -4188,11 +4348,7 @@
               );
               if (!confirmed) return;
 
-              for (const key of BACKUP_STORAGE_KEYS) {
-                if (Object.prototype.hasOwnProperty.call(parsed.data, key)) {
-                  localStorage.setItem(key, JSON.stringify(parsed.data[key]));
-                }
-              }
+              restoreLocalStorageFromBackupPayload(parsed);
 
               window.location.reload();
             } catch (_) {
@@ -4236,6 +4392,16 @@
           if (!file) return;
           setSettingsPopoverOpen(false);
           restoreFromBackupFile(file);
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "hidden") {
+            writeAutoBackup().catch(() => {});
+          }
+        });
+
+        window.addEventListener("pagehide", () => {
+          writeAutoBackup().catch(() => {});
         });
 
         quickAddToggle.addEventListener("click", () => {
@@ -4334,18 +4500,53 @@
           shareTasksToTodoApp(getAddedTasks(previousTasks, nextTasks)).catch(() => {});
         });
 
-        setInterval(render, 250);
-        renderQuickAdd();
-        render();
+        requestPersistentStorage();
+        restoreFromAutoBackupIfNeeded()
+          .then((restored) => {
+            if (restored) {
+              return;
+            }
+
+            setInterval(render, 250);
+            renderQuickAdd();
+            render();
+          })
+          .catch(() => {
+            setInterval(render, 250);
+            renderQuickAdd();
+            render();
+          });
       }
 
       document.addEventListener("dblclick", (event) => {
         event.preventDefault();
       }, { passive: false });
 
+      let horizontalSwipeStartX = 0;
+      let horizontalSwipeStartY = 0;
+
+      document.addEventListener("touchstart", (event) => {
+        if (event.touches.length !== 1) {
+          return;
+        }
+
+        horizontalSwipeStartX = event.touches[0].clientX;
+        horizontalSwipeStartY = event.touches[0].clientY;
+      }, { passive: true });
+
       document.addEventListener("touchmove", (event) => {
         if (event.touches.length > 1) {
           event.preventDefault();
+          return;
+        }
+
+        if (event.touches.length === 1) {
+          const deltaX = event.touches[0].clientX - horizontalSwipeStartX;
+          const deltaY = event.touches[0].clientY - horizontalSwipeStartY;
+
+          if (Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+            event.preventDefault();
+          }
         }
       }, { passive: false });
 
