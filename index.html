@@ -181,33 +181,25 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        border: 1px solid rgb(226 232 240);
+        width: 36px;
+        height: 36px;
+        border: 0;
         border-radius: 999px;
-        background: rgb(255 255 255);
-        color: rgb(82 82 82);
+        background: transparent;
+        color: rgb(148 163 184);
         cursor: pointer;
-        transition:
-          color 0.14s ease-out,
-          border-color 0.14s ease-out,
-          transform 0.14s ease-out;
+        opacity: 0.75;
+        transition: opacity 0.14s ease-out;
       }
 
       .settings-toggle:hover,
       .settings-toggle[aria-expanded="true"] {
-        color: var(--title-red);
-        border-color: var(--title-red);
-      }
-
-      .settings-toggle[aria-expanded="true"] .settings-icon {
-        transform: rotate(45deg);
+        opacity: 1;
       }
 
       .settings-icon {
         width: 22px;
         height: 22px;
-        transition: transform 0.2s ease-out;
       }
 
       .settings-popover {
@@ -1678,6 +1670,10 @@
       }
 
       @media (max-width: 860px) {
+        .app-shell {
+          padding-bottom: calc(96px + env(safe-area-inset-bottom));
+        }
+
         .task-panel {
           display: block;
           height: auto;
