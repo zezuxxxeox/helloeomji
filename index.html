@@ -1209,9 +1209,9 @@
         min-height: 56px;
         margin-bottom: 10px;
         border: 2px solid var(--title-red);
-        border-radius: 999px;
+        border-radius: 28px;
         background: var(--title-red);
-        padding: 4px 8px;
+        padding: 6px 8px;
         box-shadow: 0 8px 18px rgba(212, 49, 43, 0.16);
         overflow: hidden;
       }
@@ -1238,10 +1238,12 @@
         text-align: center;
         font-size: 15px;
         font-weight: 950;
-        line-height: 1;
-        white-space: nowrap;
+        line-height: 1.35;
+        white-space: pre-wrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        resize: none;
+        font-family: inherit;
+        box-sizing: border-box;
         caret-color: rgb(255 255 255);
       }
 
@@ -1251,10 +1253,9 @@
         text-align: center;
         font-size: 15px;
         font-weight: 950;
-        line-height: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
       }
 
       .daily-diary-text.is-empty {
@@ -1694,16 +1695,15 @@
           <ul class="task-list" data-task-list>
             <li class="daily-diary" data-daily-diary>
               <img class="daily-diary-icon" src="./public/kitty-diary.png" alt="" aria-hidden="true" />
-              <input
+              <textarea
                 class="daily-diary-input"
-                type="text"
-                maxlength="20"
+                rows="1"
                 autocomplete="off"
                 spellcheck="false"
-                aria-label="한 줄 일기 쓰기"
-                placeholder="한 줄 일기 쓰기"
+                aria-label="엄지야, 오늘은 어땠어?"
+                placeholder="엄지야, 오늘은 어땠어?"
                 data-daily-summary-input
-              />
+              ></textarea>
               <img class="daily-diary-icon" src="./public/kitty-diary.png" alt="" aria-hidden="true" />
             </li>
           </ul>
@@ -1740,7 +1740,8 @@
       const LANE_PATTERN = [0, -1, 1, -2, 2];
       const FAILED_CAT_VISIBLE_MS = 5000;
       const DAILY_RESCUE_LIMIT_PER_REASON = 2;
-      const DAILY_SUMMARY_MAX_LENGTH = 20;
+      const DAILY_SUMMARY_LINE_MAX_LENGTH = 20;
+      const DAILY_SUMMARY_MAX_LINES = 5;
       const CALENDAR_ALARM_LEAD_MINUTES = 10;
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
@@ -2323,9 +2324,16 @@
             return "";
           }
 
-          return Array.from(value.replace(/\s+/g, " "))
-            .slice(0, DAILY_SUMMARY_MAX_LENGTH)
-            .join("");
+          return value
+            .replace(/\r\n?/g, "\n")
+            .split("\n")
+            .slice(0, DAILY_SUMMARY_MAX_LINES)
+            .map((line) =>
+              Array.from(line.replace(/[ \t]+/g, " "))
+                .slice(0, DAILY_SUMMARY_LINE_MAX_LENGTH)
+                .join(""),
+            )
+            .join("\n");
         }
 
         function normalizeDailySummary(value) {
@@ -2333,9 +2341,21 @@
             return "";
           }
 
-          return Array.from(value.replace(/\s+/g, " ").trim())
-            .slice(0, DAILY_SUMMARY_MAX_LENGTH)
-            .join("");
+          const lines = value
+            .replace(/\r\n?/g, "\n")
+            .split("\n")
+            .slice(0, DAILY_SUMMARY_MAX_LINES)
+            .map((line) =>
+              Array.from(line.replace(/[ \t]+/g, " ").trim())
+                .slice(0, DAILY_SUMMARY_LINE_MAX_LENGTH)
+                .join(""),
+            );
+
+          while (lines.length > 0 && !lines[lines.length - 1]) {
+            lines.pop();
+          }
+
+          return lines.join("\n");
         }
 
         function getDailySummary(dayKey) {
@@ -3121,12 +3141,19 @@
           petButton.disabled = !canPetCat(task, now);
         }
 
+        function autoExpandDailySummary() {
+          dailySummaryInput.style.height = "auto";
+          dailySummaryInput.style.height = `${dailySummaryInput.scrollHeight}px`;
+        }
+
         function renderDailySummary() {
           const todayKey = getDayKey(now);
 
           if (document.activeElement !== dailySummaryInput) {
             dailySummaryInput.value = getDailySummary(todayKey);
           }
+
+          autoExpandDailySummary();
         }
 
         function renderTasks() {
@@ -3421,7 +3448,13 @@
           let taskAreaTop = 374;
 
           if (dailySummary) {
-            const summaryHeight = 112;
+            const summaryLines = dailySummary.split("\n");
+            const lineHeight = 44;
+            const verticalPadding = 36;
+            const summaryHeight = Math.max(
+              112,
+              verticalPadding * 2 + lineHeight * summaryLines.length,
+            );
             const summaryRadius = 34;
             const summaryY = taskAreaTop;
 
@@ -3432,11 +3465,18 @@
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
             ctx.font = `950 34px ${fontFamily}`;
-            ctx.fillText(
-              truncateForCanvas(ctx, dailySummary, cardWidth - 96),
-              W / 2,
-              summaryY + summaryHeight / 2 + 12,
-            );
+
+            const blockHeight = lineHeight * summaryLines.length;
+            const firstLineY =
+              summaryY + (summaryHeight - blockHeight) / 2 + lineHeight * 0.75;
+
+            summaryLines.forEach((line, lineIndex) => {
+              ctx.fillText(
+                truncateForCanvas(ctx, line, cardWidth - 96),
+                W / 2,
+                firstLineY + lineIndex * lineHeight,
+              );
+            });
 
             taskAreaTop += summaryHeight + 22;
           }
@@ -3668,7 +3708,7 @@
 
           diary.className = "daily-diary calendar-detail-summary";
           text.className = "daily-diary-text";
-          text.textContent = dailySummary || "한 줄 일기 없음";
+          text.textContent = dailySummary || "일기 없음";
           text.classList.toggle("is-empty", !dailySummary);
 
           diary.append(createKittyDiaryIcon(), text, createKittyDiaryIcon());
@@ -3839,12 +3879,14 @@
           }
 
           setDailySummary(getDayKey(Date.now()), sanitizedValue);
+          autoExpandDailySummary();
         });
 
         dailySummaryInput.addEventListener("blur", () => {
           const todayKey = getDayKey(Date.now());
 
           dailySummaryInput.value = getDailySummary(todayKey);
+          autoExpandDailySummary();
         });
 
         function render() {
