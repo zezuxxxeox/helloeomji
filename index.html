@@ -2952,10 +2952,6 @@
           }
         }
 
-        function shareTaskToTodoApp(taskId) {
-          return shareTasksToTodoApp([tasks.find((task) => task.id === taskId)]);
-        }
-
         function getAddedTasks(previousTasks, nextTasks) {
           const previousIds = new Set(previousTasks.map((task) => task.id));
           return nextTasks.filter((task) => !previousIds.has(task.id));
@@ -3070,16 +3066,6 @@
             tryPetCat(task.id);
           });
 
-          const todoAppButton = document.createElement("button");
-          todoAppButton.className = "small-button secondary";
-          todoAppButton.type = "button";
-          todoAppButton.textContent = "앱추가";
-          todoAppButton.title = "할 일 앱에 추가";
-          todoAppButton.dataset.todoAppButton = "";
-          todoAppButton.addEventListener("click", () => {
-            shareTaskToTodoApp(task.id);
-          });
-
           const deleteButton = document.createElement("button");
           deleteButton.className = "small-button secondary";
           deleteButton.type = "button";
@@ -3095,7 +3081,7 @@
 
           titleRow.append(title, badge);
           progressTrack.append(progressFill);
-          actions.append(completeButton, forgotButton, lateButton, petButton, todoAppButton, deleteButton);
+          actions.append(completeButton, forgotButton, lateButton, petButton, deleteButton);
           item.append(titleRow, meta, progressTrack, actions);
           updateTaskItem(item, task);
 
@@ -3433,7 +3419,30 @@
 
           const cardX = 84;
           const cardWidth = W - 168;
-          const taskAreaTop = 374;
+          const dailySummary = getDailySummary(dayKey);
+          let taskAreaTop = 374;
+
+          if (dailySummary) {
+            const summaryHeight = 112;
+            const summaryRadius = 34;
+            const summaryY = taskAreaTop;
+
+            drawRoundedRect(ctx, cardX, summaryY, cardWidth, summaryHeight, summaryRadius);
+            ctx.fillStyle = "#d4312b";
+            ctx.fill();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.font = `950 34px ${fontFamily}`;
+            ctx.fillText(
+              truncateForCanvas(ctx, dailySummary, cardWidth - 96),
+              W / 2,
+              summaryY + summaryHeight / 2 + 12,
+            );
+
+            taskAreaTop += summaryHeight + 22;
+          }
+
           const taskAreaBottom = H - 44 - 9;
           const taskAreaHeight = taskAreaBottom - taskAreaTop;
           const minRowHeight = 46;
