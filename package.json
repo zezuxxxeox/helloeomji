@@ -5,11 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "push:keys": "node scripts/generate-vapid.js",
+    "start": "node server.js",
     "test": "vitest run"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
     "vite": "^7.0.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
   }
 }

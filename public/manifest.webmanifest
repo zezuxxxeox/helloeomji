@@ -1,8 +1,9 @@
 {
   "name": "HELLO EOMJI",
   "short_name": "HELLO EOMJI",
-  "start_url": "../",
-  "scope": "../",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffd5e5",
   "theme_color": "#ffd5e5",

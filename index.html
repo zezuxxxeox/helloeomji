@@ -1181,6 +1181,88 @@
         padding: 10px;
       }
 
+      .daily-diary {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 48px;
+        align-items: center;
+        gap: 4px;
+        min-height: 56px;
+        margin-bottom: 10px;
+        border: 2px solid var(--title-red);
+        border-radius: 999px;
+        background: var(--title-red);
+        padding: 4px 8px;
+        box-shadow: 0 8px 18px rgba(212, 49, 43, 0.16);
+        overflow: hidden;
+      }
+
+      .daily-diary-icon {
+        width: 48px;
+        height: 46px;
+        object-fit: contain;
+        pointer-events: none;
+      }
+
+      .daily-diary-icon:last-child {
+        transform: scaleX(-1);
+      }
+
+      .daily-diary-input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: rgb(255 255 255);
+        outline: none;
+        padding: 0 2px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: 950;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        caret-color: rgb(255 255 255);
+      }
+
+      .daily-diary-text {
+        min-width: 0;
+        color: rgb(255 255 255);
+        text-align: center;
+        font-size: 15px;
+        font-weight: 950;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .daily-diary-text.is-empty {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .daily-diary-input::placeholder {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      @media (max-width: 520px) {
+        .daily-diary {
+          grid-template-columns: 42px minmax(0, 1fr) 42px;
+          min-height: 52px;
+          padding-inline: 7px;
+        }
+
+        .daily-diary-icon {
+          width: 42px;
+          height: 40px;
+        }
+
+        .daily-diary-input,
+        .daily-diary-text {
+          font-size: 14px;
+        }
+      }
+
       .calendar-view {
         min-height: 0;
         overflow: auto;
@@ -1374,6 +1456,11 @@
         font-weight: 900;
       }
 
+      .calendar-detail-summary {
+        min-height: 52px;
+        margin-bottom: 0;
+      }
+
       .calendar-detail-empty {
         color: rgb(82 82 82);
         font-size: 13px;
@@ -1545,18 +1632,33 @@
         <aside class="task-panel">
           <div class="panel-heading">
             <div class="panel-title-block">
-              <h2 data-panel-title>할 일 목록</h2>
+              <h2 data-panel-title>할 일</h2>
               <span class="current-time" data-current-time>
                 <span class="current-date" data-current-date>--</span>
                 <span class="current-clock" data-current-clock>--:--:--</span>
               </span>
             </div>
             <div class="panel-tabs" role="tablist" aria-label="할 일 보기 전환">
-              <button class="panel-tab is-active" type="button" data-panel-view-button="tasks">목록</button>
+              <button class="panel-tab is-active" type="button" data-panel-view-button="tasks">할 일</button>
               <button class="panel-tab" type="button" data-panel-view-button="calendar">캘린더</button>
             </div>
           </div>
-          <ul class="task-list" data-task-list></ul>
+          <ul class="task-list" data-task-list>
+            <li class="daily-diary" data-daily-diary>
+              <img class="daily-diary-icon" src="./public/kitty-diary.png" alt="" aria-hidden="true" />
+              <input
+                class="daily-diary-input"
+                type="text"
+                maxlength="15"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="한 줄 일기 쓰기"
+                placeholder="한 줄 일기 쓰기"
+                data-daily-summary-input
+              />
+              <img class="daily-diary-icon" src="./public/kitty-diary.png" alt="" aria-hidden="true" />
+            </li>
+          </ul>
           <div class="calendar-view" data-calendar-view hidden>
             <div class="calendar-toolbar">
               <button class="calendar-nav" type="button" aria-label="이전 달" data-calendar-prev>&lt;</button>
@@ -1591,6 +1693,9 @@
       const DEADLINE_REMINDER_LEAD_MS = 10 * 60 * 1000;
       const FAILED_CAT_VISIBLE_MS = 5000;
       const DAILY_RESCUE_LIMIT_PER_REASON = 2;
+      const DAILY_SUMMARY_MAX_LENGTH = 15;
+      const TODO_SHORTCUT_NAME = "HELLO EOMJI 할일추가";
+      const CALENDAR_ALARM_LEAD_MINUTES = 10;
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
@@ -1981,6 +2086,7 @@
         const panelTitle = document.querySelector("[data-panel-title]");
         const panelViewButtons = [...document.querySelectorAll("[data-panel-view-button]")];
         const taskList = document.querySelector("[data-task-list]");
+        const dailySummaryInput = document.querySelector("[data-daily-summary-input]");
         const calendarView = document.querySelector("[data-calendar-view]");
         const calendarTitle = document.querySelector("[data-calendar-title]");
         const calendarGrid = document.querySelector("[data-calendar-grid]");
@@ -2007,7 +2113,8 @@
 
         if (
           !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
-          panelViewButtons.length === 0 || !taskList || !calendarView || !calendarTitle ||
+          panelViewButtons.length === 0 || !taskList || !dailySummaryInput ||
+          !calendarView || !calendarTitle ||
           !calendarGrid || !calendarDetail || !calendarDetailTitle || !calendarDetailList ||
           !calendarShareButton ||
           !calendarPrev || !calendarNext || !emptyPark ||
@@ -2049,6 +2156,9 @@
         let hasPettedDuringSession = false;
         let pendingPetTaskId = null;
         let reminderPermissionRequest = null;
+        let pushSetupPromise = null;
+        let pushReminderSyncTimer = 0;
+        let lastSyncedPushText = "";
         let lockedScrollY = 0;
         const remindedTaskKeys = new Set();
 
@@ -2167,6 +2277,44 @@
           return records && typeof records === "object" && !Array.isArray(records) ? records : {};
         }
 
+        function sanitizeDailySummaryInput(value) {
+          if (typeof value !== "string") {
+            return "";
+          }
+
+          return Array.from(value.replace(/\s+/g, " "))
+            .slice(0, DAILY_SUMMARY_MAX_LENGTH)
+            .join("");
+        }
+
+        function normalizeDailySummary(value) {
+          if (typeof value !== "string") {
+            return "";
+          }
+
+          return Array.from(value.replace(/\s+/g, " ").trim())
+            .slice(0, DAILY_SUMMARY_MAX_LENGTH)
+            .join("");
+        }
+
+        function getDailySummary(dayKey) {
+          return normalizeDailySummary(dailyRecords[dayKey]?.summary);
+        }
+
+        function setDailySummary(dayKey, value) {
+          const currentRecord = dailyRecords[dayKey] ?? {};
+
+          dailyRecords = {
+            ...dailyRecords,
+            [dayKey]: {
+              ...currentRecord,
+              summary: normalizeDailySummary(value),
+            },
+          };
+
+          saveDailyRecords();
+        }
+
         function saveTasks() {
           const nextSavedTasksText = JSON.stringify(tasks);
 
@@ -2176,6 +2324,7 @@
 
           lastSavedTasksText = nextSavedTasksText;
           writeStoredJson(TASK_STORAGE_KEY, tasks);
+          queuePushReminderSync();
         }
 
         function saveDailyRecords() {
@@ -2367,6 +2516,7 @@
             ...dailyRecords,
             [dayKey]: {
               ...nextRecord,
+              summary: normalizeDailySummary(existingRecord.summary),
               rescueCounts: {
                 forgot: Math.max(existingCounts.forgot, nextCounts.forgot),
                 late: Math.max(existingCounts.late, nextCounts.late),
@@ -2407,6 +2557,7 @@
             const nextCounts = normalizeRescueCounts(nextRecord.rescueCounts);
             nextDailyRecords[dayKey] = {
               ...nextRecord,
+              summary: normalizeDailySummary(existingRecord.summary),
               rescueCounts: {
                 forgot: Math.max(existingCounts.forgot, nextCounts.forgot),
                 late: Math.max(existingCounts.late, nextCounts.late),
@@ -2646,13 +2797,169 @@
           return `${task.id}:${task.createdAt}:${task.deadlineAt}`;
         }
 
+        function urlBase64ToUint8Array(base64String) {
+          const padding = "=".repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+          const rawData = window.atob(base64);
+          return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+        }
+
+        function canUsePushReminders() {
+          return (
+            "serviceWorker" in navigator &&
+            "PushManager" in window &&
+            "Notification" in window &&
+            window.isSecureContext
+          );
+        }
+
+        async function getPushPublicKey() {
+          const response = await fetch("/api/push/public-key", { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error("push server unavailable");
+          }
+
+          const data = await response.json();
+          if (typeof data.publicKey !== "string" || !data.publicKey) {
+            throw new Error("push public key unavailable");
+          }
+
+          return data.publicKey;
+        }
+
+        async function postPushJson(path, body) {
+          const response = await fetch(path, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(body),
+          });
+
+          if (!response.ok) {
+            throw new Error("push api failed");
+          }
+
+          return response.json();
+        }
+
+        async function ensurePushSubscription() {
+          if (!canUsePushReminders() || Notification.permission !== "granted") {
+            return null;
+          }
+
+          if (!pushSetupPromise) {
+            pushSetupPromise = (async () => {
+              const registration = await navigator.serviceWorker.register("/sw.js");
+              const readyRegistration = await navigator.serviceWorker.ready;
+              const existingSubscription = await readyRegistration.pushManager.getSubscription();
+              let subscription = existingSubscription;
+
+              if (!subscription) {
+                subscription = await readyRegistration.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(await getPushPublicKey()),
+                });
+              }
+
+              await postPushJson("/api/push/subscribe", {
+                subscription: subscription.toJSON(),
+              });
+
+              return subscription;
+            })().catch((error) => {
+              pushSetupPromise = null;
+              throw error;
+            });
+          }
+
+          return pushSetupPromise;
+        }
+
+        function getPushReminderTasks() {
+          const syncNow = Date.now();
+
+          return tasks
+            .filter((task) => (
+              task.status === "active" &&
+              Number.isFinite(task.deadlineAt) &&
+              task.deadlineAt > syncNow
+            ))
+            .map((task) => ({
+              id: task.id,
+              text: task.text,
+              status: task.status,
+              createdAt: task.createdAt,
+              deadlineAt: task.deadlineAt,
+            }));
+        }
+
+        async function syncPushReminders() {
+          if (!canUsePushReminders() || Notification.permission !== "granted") {
+            return;
+          }
+
+          const subscription = await ensurePushSubscription();
+
+          if (!subscription) {
+            return;
+          }
+
+          const payload = {
+            subscription: subscription.toJSON(),
+            tasks: getPushReminderTasks(),
+          };
+          const nextSyncedPushText = JSON.stringify(payload);
+
+          if (nextSyncedPushText === lastSyncedPushText) {
+            return;
+          }
+
+          await postPushJson("/api/push/reminders", payload);
+          lastSyncedPushText = nextSyncedPushText;
+        }
+
+        function queuePushReminderSync() {
+          window.clearTimeout(pushReminderSyncTimer);
+          pushReminderSyncTimer = window.setTimeout(() => {
+            pushReminderSyncTimer = 0;
+            syncPushReminders().catch(() => {});
+          }, 350);
+        }
+
+        function prepareGrantedPushReminders() {
+          if (!("Notification" in window) || Notification.permission !== "granted") {
+            return;
+          }
+
+          ensurePushSubscription()
+            .then(() => {
+              queuePushReminderSync();
+            })
+            .catch(() => {});
+        }
+
         function canRequestBrowserNotification() {
           return "Notification" in window && Notification.permission === "default";
         }
 
         function requestReminderPermission() {
-          if (!("Notification" in window) || Notification.permission !== "default") {
-            return Promise.resolve("Notification" in window ? Notification.permission : "unsupported");
+          if (!("Notification" in window)) {
+            return Promise.resolve("unsupported");
+          }
+
+          if (Notification.permission !== "default") {
+            if (Notification.permission === "granted") {
+              return ensurePushSubscription()
+                .then(() => {
+                  queuePushReminderSync();
+                  return Notification.permission;
+                })
+                .catch(() => Notification.permission);
+            }
+
+            return Promise.resolve(Notification.permission);
           }
 
           if (!reminderPermissionRequest) {
@@ -2661,7 +2968,14 @@
             });
           }
 
-          return reminderPermissionRequest;
+          return reminderPermissionRequest.then((permission) => {
+            if (permission === "granted") {
+              queuePushReminderSync();
+              ensurePushSubscription().catch(() => {});
+            }
+
+            return permission;
+          });
         }
 
         function sendBrowserReminder(task) {
@@ -2691,6 +3005,169 @@
           if (navigator.vibrate) {
             navigator.vibrate([120, 60, 120]);
           }
+        }
+
+        function formatTaskForTodoApp(task) {
+          const deadlineText = new Intl.DateTimeFormat("ko-KR", {
+            month: "long",
+            day: "numeric",
+            weekday: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(task.deadlineAt);
+
+          return `${task.text}\n마감: ${deadlineText}`;
+        }
+
+        function escapeCalendarText(value) {
+          return String(value)
+            .replace(/\\/g, "\\\\")
+            .replace(/\n/g, "\\n")
+            .replace(/,/g, "\\,")
+            .replace(/;/g, "\\;");
+        }
+
+        function foldCalendarLine(line) {
+          const chars = Array.from(line);
+          const lines = [];
+
+          for (let index = 0; index < chars.length; index += 72) {
+            lines.push(`${index === 0 ? "" : " "}${chars.slice(index, index + 72).join("")}`);
+          }
+
+          return lines.join("\r\n");
+        }
+
+        function formatCalendarDate(timestamp) {
+          return new Date(timestamp)
+            .toISOString()
+            .replace(/[-:]/g, "")
+            .replace(/\.\d{3}Z$/, "Z");
+        }
+
+        function buildCalendarAlarmFile(targetTasks) {
+          const stamp = formatCalendarDate(Date.now());
+          const lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//HELLO EOMJI//Task Alarms//KO",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+          ];
+
+          targetTasks.forEach((task) => {
+            const startAt = task.deadlineAt;
+            const endAt = startAt + 15 * 60 * 1000;
+            const uid = `${task.id}-${task.deadlineAt}@hello-eomji.local`;
+            const summary = escapeCalendarText(task.text);
+            const description = escapeCalendarText(formatTaskForTodoApp(task));
+
+            lines.push(
+              "BEGIN:VEVENT",
+              `UID:${uid}`,
+              `DTSTAMP:${stamp}`,
+              `DTSTART:${formatCalendarDate(startAt)}`,
+              `DTEND:${formatCalendarDate(endAt)}`,
+              `SUMMARY:${summary}`,
+              `DESCRIPTION:${description}`,
+              "BEGIN:VALARM",
+              "ACTION:DISPLAY",
+              `DESCRIPTION:${summary}`,
+              `TRIGGER:-PT${CALENDAR_ALARM_LEAD_MINUTES}M`,
+              "END:VALARM",
+              "END:VEVENT",
+            );
+          });
+
+          lines.push("END:VCALENDAR");
+          return `${lines.map(foldCalendarLine).join("\r\n")}\r\n`;
+        }
+
+        function openCalendarAlarmFile(targetTasks) {
+          const calendarText = buildCalendarAlarmFile(targetTasks);
+          const blob = new Blob([calendarText], {
+            type: "text/calendar;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+
+          link.href = url;
+          link.download = "hello-eomji-alarm.ics";
+          link.rel = "noopener";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 5000);
+        }
+
+        function canOpenShortcutBridge() {
+          return (
+            /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+          );
+        }
+
+        function buildShortcutTaskPayload(task) {
+          return {
+            title: task.text,
+            dueAt: new Date(task.deadlineAt).toISOString(),
+            dueText: formatDeadline(task.deadlineAt),
+            notes: "HELLO EOMJI",
+          };
+        }
+
+        function buildShortcutUrl(targetTasks) {
+          const payload = {
+            source: "HELLO EOMJI",
+            tasks: targetTasks.map(buildShortcutTaskPayload),
+          };
+          const query = new URLSearchParams({
+            name: TODO_SHORTCUT_NAME,
+            input: "text",
+            text: JSON.stringify(payload),
+          });
+
+          return `shortcuts://run-shortcut?${query.toString()}`;
+        }
+
+        async function shareTasksToTodoApp(targetTasks) {
+          const shareTasks = targetTasks.filter(Boolean);
+
+          if (shareTasks.length === 0) {
+            setMessage("보낼 할 일을 찾을 수 없어요");
+            return;
+          }
+
+          try {
+            openCalendarAlarmFile(shareTasks);
+            setMessage("캘린더 알림 추가 화면을 열었어요");
+            return;
+          } catch (_) {}
+
+          if (canOpenShortcutBridge()) {
+            window.location.href = buildShortcutUrl(shareTasks);
+            setMessage("할 일 앱으로 보내는 중이에요");
+            return;
+          }
+
+          try {
+            await navigator.clipboard.writeText(shareTasks.map(formatTaskForTodoApp).join("\n\n"));
+            setMessage("iPhone에서는 단축어로 바로 보낼 수 있어요");
+          } catch (_) {
+            setMessage("iPhone 단축어가 필요해요");
+          }
+        }
+
+        function shareTaskToTodoApp(taskId) {
+          return shareTasksToTodoApp([tasks.find((task) => task.id === taskId)]);
+        }
+
+        function getAddedTasks(previousTasks, nextTasks) {
+          const previousIds = new Set(previousTasks.map((task) => task.id));
+          return nextTasks.filter((task) => !previousIds.has(task.id));
         }
 
         function notifyUpcomingDeadlines(reminderNow, reminderTasks = getTasksForDay(reminderNow)) {
@@ -2829,6 +3306,16 @@
             tryPetCat(task.id);
           });
 
+          const todoAppButton = document.createElement("button");
+          todoAppButton.className = "small-button secondary";
+          todoAppButton.type = "button";
+          todoAppButton.textContent = "앱추가";
+          todoAppButton.title = "할 일 앱에 추가";
+          todoAppButton.dataset.todoAppButton = "";
+          todoAppButton.addEventListener("click", () => {
+            shareTaskToTodoApp(task.id);
+          });
+
           const deleteButton = document.createElement("button");
           deleteButton.className = "small-button secondary";
           deleteButton.type = "button";
@@ -2844,7 +3331,7 @@
 
           titleRow.append(title, badge);
           progressTrack.append(progressFill);
-          actions.append(completeButton, forgotButton, lateButton, petButton, deleteButton);
+          actions.append(completeButton, forgotButton, lateButton, petButton, todoAppButton, deleteButton);
           item.append(titleRow, meta, progressTrack, actions);
           updateTaskItem(item, task);
 
@@ -2886,22 +3373,36 @@
           petButton.disabled = !canPetCat(task, now);
         }
 
+        function renderDailySummary() {
+          const todayKey = getDayKey(now);
+
+          if (document.activeElement !== dailySummaryInput) {
+            dailySummaryInput.value = getDailySummary(todayKey);
+          }
+        }
+
         function renderTasks() {
           const visibleTasks = getTasksForDay(now);
           const taskIds = new Set(visibleTasks.map((task) => task.id));
           const existingItems = new Map(
-            [...taskList.children].map((item) => [item.dataset.taskId, item]),
+            [...taskList.children]
+              .filter((item) => item.dataset.taskId)
+              .map((item) => [item.dataset.taskId, item]),
           );
 
           [...taskList.children].forEach((item) => {
-            if (!taskIds.has(item.dataset.taskId)) {
+            if (item.dataset.taskId && !taskIds.has(item.dataset.taskId)) {
               item.remove();
             }
           });
 
+          const staticItemCount = [...taskList.children]
+            .filter((item) => !item.dataset.taskId)
+            .length;
+
           visibleTasks.forEach((task, index) => {
             const item = existingItems.get(task.id) ?? createTaskItem(task);
-            const currentItem = taskList.children[index];
+            const currentItem = taskList.children[staticItemCount + index];
 
             updateTaskItem(item, task);
 
@@ -3364,19 +3865,43 @@
             deadlineAt = submittedAt + 60 * 60 * 1000;
           }
 
-          const nextTasks = addTask(tasks, item.text, deadlineAt, submittedAt);
+          const previousTasks = tasks;
+          const nextTasks = addTask(previousTasks, item.text, deadlineAt, submittedAt);
 
-          if (nextTasks === tasks) {
+          if (nextTasks === previousTasks) {
             setMessage("오늘 할 일에 추가할 수 없어요");
             return;
           }
 
           tasks = nextTasks;
           rememberTaskText(item.text, submittedAt, formatDeadlineTimeInput(deadlineAt));
-          requestReminderPermission().catch(() => {});
           setMessage("오늘 할 일에 추가했어요");
           renderQuickAdd();
           render();
+          shareTasksToTodoApp(getAddedTasks(previousTasks, nextTasks)).catch(() => {});
+        }
+
+        function createKittyDiaryIcon() {
+          const icon = document.createElement("img");
+          icon.className = "daily-diary-icon";
+          icon.src = "./public/kitty-diary.png";
+          icon.alt = "";
+          icon.setAttribute("aria-hidden", "true");
+          return icon;
+        }
+
+        function createCalendarDailySummary(dayKey) {
+          const dailySummary = getDailySummary(dayKey);
+          const diary = document.createElement("div");
+          const text = document.createElement("span");
+
+          diary.className = "daily-diary calendar-detail-summary";
+          text.className = "daily-diary-text";
+          text.textContent = dailySummary || "한 줄 일기 없음";
+          text.classList.toggle("is-empty", !dailySummary);
+
+          diary.append(createKittyDiaryIcon(), text, createKittyDiaryIcon());
+          return diary;
         }
 
         function renderCalendarDetail() {
@@ -3391,6 +3916,7 @@
           calendarDetail.hidden = false;
           calendarDetailTitle.textContent = formatCalendarDayTitle(selectedCalendarDayKey);
           calendarDetailList.textContent = "";
+          calendarDetailList.appendChild(createCalendarDailySummary(selectedCalendarDayKey));
 
           if (items.length === 0) {
             const empty = document.createElement("p");
@@ -3507,7 +4033,7 @@
 
           taskList.hidden = showingCalendar;
           calendarView.hidden = !showingCalendar;
-          panelTitle.textContent = showingCalendar ? "기록 캘린더" : "할 일 목록";
+          panelTitle.textContent = showingCalendar ? "기록 캘린더" : "할 일";
 
           panelViewButtons.forEach((button) => {
             const isActive = button.dataset.panelViewButton === activePanelView;
@@ -3534,6 +4060,22 @@
           },
         });
 
+        dailySummaryInput.addEventListener("input", () => {
+          const sanitizedValue = sanitizeDailySummaryInput(dailySummaryInput.value);
+
+          if (dailySummaryInput.value !== sanitizedValue) {
+            dailySummaryInput.value = sanitizedValue;
+          }
+
+          setDailySummary(getDayKey(Date.now()), sanitizedValue);
+        });
+
+        dailySummaryInput.addEventListener("blur", () => {
+          const todayKey = getDayKey(Date.now());
+
+          dailySummaryInput.value = getDailySummary(todayKey);
+        });
+
         function render() {
           now = Date.now();
           tasks = failOverdueTasks(tasks, now);
@@ -3551,6 +4093,7 @@
             dateInput.value = todayDate;
           }
           renderStats();
+          renderDailySummary();
           renderTasks();
           renderPanelView();
           if (archivedPastTasks && !quickAddPanel.hidden) {
@@ -3639,15 +4182,17 @@
             return;
           }
 
+          const previousTasks = tasks;
+
           selectedTasks.forEach((item) => {
             tasks = addTask(tasks, item.text, item.deadlineAt, submittedAt);
             rememberTaskText(item.text, submittedAt, item.deadlineTime);
           });
 
-          requestReminderPermission().catch(() => {});
           setMessage("");
           renderQuickAdd();
           render();
+          shareTasksToTodoApp(getAddedTasks(previousTasks, tasks)).catch(() => {});
         });
 
         form.addEventListener("submit", (event) => {
@@ -3681,18 +4226,20 @@
             return;
           }
 
-          requestReminderPermission().catch(() => {});
+          const previousTasks = tasks;
           tasks = nextTasks;
           rememberTaskText(taskInput.value, submittedAt, deadlineInput.value);
           taskInput.value = "";
           setMessage("");
           renderQuickAdd();
           render();
+          shareTasksToTodoApp(getAddedTasks(previousTasks, nextTasks)).catch(() => {});
         });
 
         setInterval(render, 250);
         renderQuickAdd();
         render();
+        prepareGrantedPushReminders();
       }
 
       document.addEventListener("dblclick", (event) => {
