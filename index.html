@@ -1746,7 +1746,6 @@
       const TASK_STORAGE_KEY = "today-cat-tasks-v1";
       const DAILY_RECORD_STORAGE_KEY = "today-cat-daily-records-v1";
       const TASK_HISTORY_STORAGE_KEY = "today-cat-task-history-v1";
-      const CALENDAR_HINT_SHOWN_KEY = "today-cat-calendar-hint-shown-v1";
 
       function isBlankText(text) {
         return typeof text !== "string" || text.trim().length === 0;
@@ -2941,12 +2940,6 @@
 
           try {
             openCalendarAlarmFile(shareTasks);
-            if (!localStorage.getItem(CALENDAR_HINT_SHOWN_KEY)) {
-              setMessage("아이폰 캘린더 화면 하단의 '캘린더에 추가' 버튼을 눌러주세요");
-              try {
-                localStorage.setItem(CALENDAR_HINT_SHOWN_KEY, "1");
-              } catch (_) {}
-            }
             return;
           } catch (_) {}
 
