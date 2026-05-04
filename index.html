@@ -138,6 +138,32 @@
         .app-shell h1.title-logo img {
           height: clamp(32px, 9vw, 44px);
         }
+
+        .app-shell > header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          grid-template-areas:
+            "title settings"
+            "stats stats";
+          align-items: center;
+          gap: 10px;
+        }
+
+        .app-shell > header .title-block {
+          grid-area: title;
+          justify-content: flex-start;
+        }
+
+        .app-shell > header .stats-grid {
+          grid-area: stats;
+          width: 100%;
+          max-width: none;
+        }
+
+        .app-shell > header .settings-menu {
+          grid-area: settings;
+          justify-self: end;
+        }
       }
 
       .stats-grid {
@@ -898,7 +924,8 @@
           height: auto;
           min-height: 0;
           max-height: none;
-          overflow: visible;
+          overflow: hidden;
+          margin-bottom: 16px;
         }
 
         .task-list,
@@ -908,11 +935,11 @@
         }
 
         .task-list {
-          padding-bottom: 88px;
+          padding-bottom: 56px;
         }
 
         .calendar-view {
-          padding-bottom: 128px;
+          padding-bottom: 96px;
         }
 
         .calendar-detail-list {
@@ -1656,7 +1683,8 @@
           height: auto;
           min-height: 0;
           max-height: none;
-          overflow: visible;
+          overflow: hidden;
+          margin-bottom: 16px;
         }
 
         .task-list,
@@ -1666,11 +1694,11 @@
         }
 
         .task-list {
-          padding-bottom: 88px;
+          padding-bottom: 56px;
         }
 
         .calendar-view {
-          padding-bottom: 128px;
+          padding-bottom: 96px;
         }
 
         .calendar-detail-list {
