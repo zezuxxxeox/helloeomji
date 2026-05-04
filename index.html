@@ -145,6 +145,65 @@
         min-width: 0;
       }
 
+      .settings-menu {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .settings-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 999px;
+        background: rgb(255 255 255);
+        color: rgb(82 82 82);
+        cursor: pointer;
+        transition:
+          color 0.14s ease-out,
+          border-color 0.14s ease-out,
+          transform 0.14s ease-out;
+      }
+
+      .settings-toggle:hover,
+      .settings-toggle[aria-expanded="true"] {
+        color: var(--title-red);
+        border-color: var(--title-red);
+      }
+
+      .settings-toggle[aria-expanded="true"] .settings-icon {
+        transform: rotate(45deg);
+      }
+
+      .settings-icon {
+        width: 22px;
+        height: 22px;
+        transition: transform 0.2s ease-out;
+      }
+
+      .settings-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 132px;
+        border: 1px solid rgb(226 232 240);
+        border-radius: 14px;
+        background: rgb(255 255 255);
+        padding: 10px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+      }
+
+      .settings-popover[hidden] {
+        display: none;
+      }
+
       .stat-item {
         min-width: 104px;
         border: 1px solid rgb(226 232 240);
@@ -1643,6 +1702,38 @@
             <dd data-stat-completed>0</dd>
           </div>
         </dl>
+        <div class="settings-menu" data-settings-menu>
+          <button
+            class="settings-toggle"
+            type="button"
+            aria-label="설정"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-settings-toggle
+          >
+            <svg
+              class="settings-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 5.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm8.94-2.5-1.78-.34a7.5 7.5 0 0 0-.4-.97l1.04-1.5a.75.75 0 0 0-.08-.95l-1.46-1.46a.75.75 0 0 0-.95-.08l-1.5 1.04a7.5 7.5 0 0 0-.97-.4l-.34-1.78a.75.75 0 0 0-.74-.61h-2.06a.75.75 0 0 0-.74.61l-.34 1.78c-.34.11-.66.24-.97.4L7.7 4.7a.75.75 0 0 0-.95.08L5.29 6.24a.75.75 0 0 0-.08.95l1.04 1.5a7.5 7.5 0 0 0-.4.97l-1.78.34a.75.75 0 0 0-.61.74v2.06c0 .36.26.67.61.74l1.78.34c.11.34.24.66.4.97L5.21 16.4a.75.75 0 0 0 .08.95l1.46 1.46c.26.26.66.3.95.08l1.5-1.04c.31.16.63.29.97.4l.34 1.78c.07.35.38.61.74.61h2.06c.36 0 .67-.26.74-.61l.34-1.78c.34-.11.66-.24.97-.4l1.5 1.04c.29.22.69.18.95-.08l1.46-1.46a.75.75 0 0 0 .08-.95l-1.04-1.5c.16-.31.29-.63.4-.97l1.78-.34a.75.75 0 0 0 .61-.74v-2.06a.75.75 0 0 0-.61-.74Z"
+              />
+            </svg>
+          </button>
+          <div class="settings-popover" data-settings-popover hidden>
+            <button class="small-button secondary" type="button" data-backup-button>백업하기</button>
+            <button class="small-button secondary" type="button" data-restore-button>복원하기</button>
+            <input
+              type="file"
+              accept="application/json,.json"
+              hidden
+              data-restore-input
+            />
+          </div>
+        </div>
       </header>
 
       <section class="control-strip flex flex-wrap items-end gap-3 border-y border-neutral-200 bg-white/80 px-3 py-3">
@@ -2169,6 +2260,12 @@
         const quickAddPanel = document.querySelector("[data-quick-add-panel]");
         const quickAddList = document.querySelector("[data-quick-add-list]");
         const quickAddSubmit = document.querySelector("[data-quick-add-submit]");
+        const backupButton = document.querySelector("[data-backup-button]");
+        const restoreButton = document.querySelector("[data-restore-button]");
+        const restoreInput = document.querySelector("[data-restore-input]");
+        const settingsMenu = document.querySelector("[data-settings-menu]");
+        const settingsToggle = document.querySelector("[data-settings-toggle]");
+        const settingsPopover = document.querySelector("[data-settings-popover]");
 
         if (
           !form || !taskInput || !deadlineInput || !dateInput || !message || !panelTitle ||
@@ -2180,7 +2277,9 @@
           !currentTime || !currentDate || !currentClock ||
           !catStage || !pettedOverlay || !pettedCat || !pettingHand ||
           !statActive || !statCompleted || !quickAddToggle || !quickAddPanel ||
-          !quickAddList || !quickAddSubmit
+          !quickAddList || !quickAddSubmit ||
+          !backupButton || !restoreButton || !restoreInput ||
+          !settingsMenu || !settingsToggle || !settingsPopover
         ) {
           return;
         }
@@ -3994,6 +4093,123 @@
 
         calendarShareButton.addEventListener("click", () => {
           downloadShareImage();
+        });
+
+        const BACKUP_STORAGE_KEYS = [
+          TASK_STORAGE_KEY,
+          DAILY_RECORD_STORAGE_KEY,
+          TASK_HISTORY_STORAGE_KEY,
+        ];
+
+        function setSettingsPopoverOpen(open) {
+          settingsPopover.hidden = !open;
+          settingsToggle.setAttribute("aria-expanded", String(open));
+        }
+
+        function buildBackupPayload() {
+          const data = {};
+          for (const key of BACKUP_STORAGE_KEYS) {
+            const raw = localStorage.getItem(key);
+            if (raw === null) continue;
+            try {
+              data[key] = JSON.parse(raw);
+            } catch (_) {}
+          }
+          return {
+            app: "helloeomji",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data,
+          };
+        }
+
+        function downloadBackupFile() {
+          try {
+            const json = JSON.stringify(buildBackupPayload(), null, 2);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const stamp = formatDateInputValue(Date.now());
+            link.href = url;
+            link.download = `helloeomji-backup-${stamp}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+            setMessage("백업 파일을 저장했어요");
+          } catch (_) {
+            setMessage("백업에 실패했어요");
+          }
+        }
+
+        function restoreFromBackupFile(file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(String(reader.result ?? ""));
+              if (
+                !parsed ||
+                parsed.app !== "helloeomji" ||
+                !parsed.data ||
+                typeof parsed.data !== "object"
+              ) {
+                setMessage("올바른 백업 파일이 아니에요");
+                return;
+              }
+
+              const confirmed = window.confirm(
+                "복원 시 현재 데이터는 덮어 씌워집니다.\n정말 복원하시겠습니까?",
+              );
+              if (!confirmed) return;
+
+              for (const key of BACKUP_STORAGE_KEYS) {
+                if (Object.prototype.hasOwnProperty.call(parsed.data, key)) {
+                  localStorage.setItem(key, JSON.stringify(parsed.data[key]));
+                }
+              }
+
+              window.location.reload();
+            } catch (_) {
+              setMessage("백업 파일을 읽을 수 없어요");
+            }
+          };
+          reader.onerror = () => setMessage("백업 파일을 읽을 수 없어요");
+          reader.readAsText(file);
+        }
+
+        settingsToggle.addEventListener("click", (event) => {
+          event.stopPropagation();
+          setSettingsPopoverOpen(settingsPopover.hidden);
+        });
+
+        document.addEventListener("click", (event) => {
+          if (settingsPopover.hidden) return;
+          if (!settingsMenu.contains(event.target)) {
+            setSettingsPopoverOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !settingsPopover.hidden) {
+            setSettingsPopoverOpen(false);
+          }
+        });
+
+        backupButton.addEventListener("click", () => {
+          downloadBackupFile();
+          setSettingsPopoverOpen(false);
+        });
+
+        restoreButton.addEventListener("click", () => {
+          restoreInput.click();
+        });
+
+        restoreInput.addEventListener("change", () => {
+          const file = restoreInput.files?.[0];
+          restoreInput.value = "";
+          if (!file) return;
+          setSettingsPopoverOpen(false);
+          restoreFromBackupFile(file);
         });
 
         quickAddToggle.addEventListener("click", () => {
